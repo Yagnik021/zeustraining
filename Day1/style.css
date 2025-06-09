@@ -1,0 +1,111 @@
+body {
+    background-color: #FFFFCC;
+    padding: 16px;
+    font-family: sans-serif;
+}
+
+.main_title_div {
+    background-color: #CC0000;
+    padding-bottom: 6px;
+    padding-bottom: 12px;
+}
+
+.main_title {
+    background-color: #990000;
+    padding: 4px;
+    text-align: center;
+    color: white;
+}
+
+h1 {
+    margin: 0;
+    font-style: italic;
+    letter-spacing: 12px;
+    font-weight: 600;
+}
+
+h3{
+    margin: 0;
+}
+
+.secondary_title {
+    margin: 10px 0;
+    padding: 2px 12px;
+    background-color: #009900;
+    color: white;
+}
+.descriptio_text{
+    font-style: 12px;
+    line-height: 18px;
+}
+
+.list {
+    color: #B74B3C;
+    font-style: italic;
+}
+
+.comapny_link {
+    text-decoration: none;
+    color: #99338F;
+    margin: 6px 0;
+}
+
+.image_div{
+    border: 2px dashed black;
+    width: 220px;    
+    padding: 20px;
+    background-color: white;
+}
+
+
+.random_title {
+    color: #9C9C9A;
+    font-weight: 800;
+    font-size: larger;
+    margin: 16px 0;
+}
+
+table {
+    border: 1px solid black;
+    background-color: #CCCCCC;
+}
+
+table tr td {
+    border: 1px solid black;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: right;
+}
+
+form span {
+    width: 150px;
+}
+
+.input_field {
+    width: 170px;
+}
+
+.input_text_area {
+    width: 200px;
+    overflow-y: scroll;
+    height: 150px;
+    resize: none;
+}
+
+.submit_button {
+    margin-top: 6px;
+    font-size: large;
+    height: 26px;
+    width: 160px;
+    background-color: rgb(221, 221, 221);
+    border: 1px solid black
+}
+
+input[type="radio"]:focus{
+    outline: 1px solid blue;
+    outline-offset: 2px;
+}

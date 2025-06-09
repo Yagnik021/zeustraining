@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Document</title>
+  </head>
+
+  <body>
+    <div>
+      <div class="main_title_div">
+        <h1 class="main_title">My first web page</h1>
+      </div>
+      <h3 class="secondary_title">What this is</h3>
+      <p style="descriptio_text">
+        Welcome to <i>my first webpage.</i> I created this webpage without the
+        assistance of a wbepage editor. Just may little text editor and a keen
+        <i><b>UNDERSTANDING OF HTML.</b></i>
+      </p>
+
+      <h3 class="secondary_title">Why this is</h3>
+      <ul class="list">
+        <li>To learn HTML.</li>
+        <li>Line element</li>
+        <ol>
+          <li>Home</li>
+          <li>FAQ</li>
+          <li>Contact</li>
+          <li>About</li>
+        </ol>
+        <li>How I have created ordered and unordered list</li>
+      </ul>
+      <h3 class="secondary_title">ZeusLearning.com</h3>
+      <a
+        class="comapny_link"
+        href="https://www.zeuslearning.com"
+        target="_blank"
+        >This link will open zeuslearning.com in new tab</a
+      >
+
+      <h3 class="secondary_title">
+        On click of following image navigate to Google.com
+      </h3>
+
+      <div class="image_div">
+        <a href="https://www.google.com" target="_blank">
+          <img
+            src="Google_logo_2.png"
+            width="150px"
+            alt="Google"
+            class="logo_image"
+          />
+        </a>
+      </div>
+
+      <h3 class="random_title">Some random table</h3>
+
+      <table>
+        <tr>
+          <td>Row 1, cell 1</td>
+          <td>Row 1, cell 2</td>
+          <td>Row 1, cell 3</td>
+        </tr>
+        <tr>
+          <td>Row 2, cell 1</td>
+          <td>Row 2, cell 2</td>
+          <td>Row 2, cell 3</td>
+        </tr>
+        <tr>
+          <td>Row 3, cell 1</td>
+          <td>Row 3, cell 2</td>
+          <td>Row 3, cell 3</td>
+        </tr>
+        <tr>
+          <td>Row 4, cell 1</td>
+          <td>Row 4, cell 2</td>
+          <td>Row 4, cell 3</td>
+        </tr>
+      </table>
+
+      <h3 class="random_title">Some random form</h3>
+      <p>
+        <i><b>NOTE: </b></i>It looks the part, but won't do a anything.
+      </p>
+
+      <form name="myForm">
+        <lable>Name:</lable>
+        <input
+          class="input_field"
+          placeholder="Your name"
+          type="text"
+          name="user_name"
+          id="user_name"
+        />
+        <lable>Comments:</lable>
+        <textarea
+          class="input_text_area"
+          placeholder="Your comments    "
+          name="comments"
+          id="comments"
+        ></textarea>
+        <label>Are you:</label>
+
+        <span>
+          <input type="radio" value="Male" id="male" name="gender" />
+          <lable for="male">Male</lable>
+        </span>
+        <span>
+          <input type="radio" value="Female" id="female" name="gender" />
+          <lable for="female">Female</lable>
+        </span>
+
+        <button class="submit_button" id="submit_button">Submit Query</button>
+      </form>
+    </div>
+    <script src="index.js"></script>
+  </body>
+</html>

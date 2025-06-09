@@ -1,0 +1,23 @@
+body {
+  margin: 20px;
+  overflow-y: auto;
+}
+
+.main_div{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap:20px;
+    word-wrap:break-word;
+    border: 2px solid black;
+    padding: 20px;
+}
+
+input{
+    max-width: 250px;;
+}
+
+button{
+    max-width: fit-content;
+    padding: 4px 10px;
+}
