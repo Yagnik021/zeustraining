@@ -253,7 +253,7 @@ body {
               justify-content: center;
               align-items: center;
 
-              transition: opacity 0.3s ease;
+              transition: opacity 1s ease;
 
               ul {
                 list-style-type: none;
@@ -434,7 +434,7 @@ body {
                 z-index: 5;
                 font-size: 12px;
                 width: 300px;
-                transition: opacity 0.3s ease;
+                transition: opacity 1s ease;
 
                 .navbar_links_mob {
                   display: flex;
@@ -637,19 +637,20 @@ body {
 
       .content {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(476px, 1fr));
         gap: 22px;
         margin-top: 12px;
         justify-content: center;
 
         /* Mobile styles */
         @media (max-width: 991.98px) {
+          grid-template-columns: repeat(auto-fit, minmax(476px, 570px));
           gap: 16px;
         }
 
         /* Mobile styles */
         @media (max-width: 768px) {
-          grid-template-columns: 479px;
+          grid-template-columns: 476px;
           gap: 12px;
         }
 

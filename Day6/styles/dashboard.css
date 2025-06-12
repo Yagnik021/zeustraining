@@ -253,7 +253,7 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .announcements
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  transition: opacity 0.3s ease;
+  transition: opacity 1s ease;
 }
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_links .announcements ul,
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .announcements ul {
@@ -439,7 +439,7 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .navbar-toggle
   z-index: 5;
   font-size: 12px;
   width: 300px;
-  transition: opacity 0.3s ease;
+  transition: opacity 1s ease;
 }
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_links .navbar-toggler .navbar_mob .navbar_links_mob,
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .navbar-toggler .navbar_mob .navbar_links_mob {
@@ -639,7 +639,7 @@ body .main_div .content_div .content_controller .controller_select_div::after {
 }
 body .main_div .content_div .content {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(476px, 1fr));
   gap: 22px;
   margin-top: 12px;
   justify-content: center;
@@ -648,12 +648,13 @@ body .main_div .content_div .content {
 }
 @media (max-width: 991.98px) {
   body .main_div .content_div .content {
+    grid-template-columns: repeat(auto-fit, minmax(476px, 570px));
     gap: 16px;
   }
 }
 @media (max-width: 768px) {
   body .main_div .content_div .content {
-    grid-template-columns: 479px;
+    grid-template-columns: 476px;
     gap: 12px;
   }
 }

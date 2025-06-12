@@ -1,4 +1,3 @@
-// Type definitions
 interface CardData {
     title: string;
     subject: string;
@@ -14,134 +13,109 @@ interface CardData {
     image: string;
     favouriteIcon: string;
     isExpired: boolean;
+    previweAllowed: boolean;
+    courceManagementAllowed: boolean;
+    gradeSubmissionsAllowed: boolean;
+    reportsAllowed: boolean;
 }
 
-// Data array with proper typing
 const data: CardData[] = [
     {
-        title: "Acceleration",
-        subject: "Physics",
-        grade: "Grade 7",
-        boost: "+2",
-        units: 4,
-        lessons: 18,
-        topics: 24,
-        classOptions: [
-            "Mr. Frank's Class B",
-            "Mr. Frank's Class A",
-            "Mr. Frank's Class C",
-        ],
-        selectedClass: "Mr. Frank's Class B",
-        students: 50,
-        dateRange: "21-Aug-2020 - 21-Aug-2020",
-        image: "images/imageMask.png",
-        favouriteIcon: "icons/favourite.svg",
-        isExpired: false,
-    },
-    {
-        title: "Displacement, Velocity and Speed",
-        subject: "Physics",
-        grade: "Grade 6",
-        boost: "+3",
-        units: 2,
-        lessons: 15,
-        topics: 20,
-        classOptions: ["Math", "Science"],
-        selectedClass: null,
-        students: null,
-        dateRange: null,
-        image: "images/imageMask-1.png",
-        favouriteIcon: "icons/favourite.svg",
-        isExpired: false,
-    },
-    {
-        title:
-            "Introduction to Biology: Micro organisms and how they affect the other Life Systems in En...",
-        subject: "Biology",
-        grade: "Grade 4",
-        boost: "+1",
-        units: 5,
-        lessons: 16,
-        topics: 22,
-        classOptions: [
-            "All Classes",
-            "Mr. Frank's Class B",
-            "Mr. Frank's Class A",
-            "Mr. Frank's Class C",
-        ],
-        selectedClass: "All Classes",
-        students: 300,
-        dateRange: null,
-        image: "images/imageMask-3.png",
-        favouriteIcon: "icons/favourite.svg",
-        isExpired: false,
-    },
-    {
-        title: "Introduction to High School Mathematics",
-        subject: "Mathematics",
-        grade: "Grade 8",
-        boost: "+5",
-        units: null,
-        lessons: null,
-        topics: null,
-        classOptions: [
-            "Mr. Frank's Class B",
-            "Mr. Frank's Class A",
-            "Mr. Frank's Class C",
-        ],
-        selectedClass: "Mr. Frank's Class B",
-        students: 44,
-        dateRange: "14-Oct-2019 - 20-Oct-2020",
-        image: "images/imageMask-2.png",
-        favouriteIcon: "icons/favourite_2.svg",
-        isExpired: true,
-    },
+    title: "Acceleration",
+    subject: "Physics",
+    grade: "Grade 7",
+    boost: "+2",
+    units: 4,
+    lessons: 18,
+    topics: 24,
+    classOptions: [
+      "Mr. Frank's Class B",
+      "Mr. Frank's Class A",
+      "Mr. Frank's Class C",
+    ],
+    selectedClass: "Mr. Frank's Class B",
+    students: 50,
+    dateRange: "21-Aug-2020 - 21-Aug-2020",
+    image: "images/imageMask.png",
+    favouriteIcon: "icons/favourite.svg",
+    isExpired: false,
+    previweAllowed: true,
+    courceManagementAllowed: true,
+    gradeSubmissionsAllowed: true,
+    reportsAllowed: true,
+  },
+  {
+    title: "Displacement, Velocity and Speed",
+    subject: "Physics",
+    grade: "Grade 6",
+    boost: "+3",
+    units: 2,
+    lessons: 15,
+    topics: 20,
+    classOptions: ["Math", "Science"],
+    selectedClass: null, // "No classes" was selected
+    students: null,
+    dateRange: null,
+    image: "images/imageMask-1.png",
+    favouriteIcon: "icons/favourite.svg",
+    isExpired: false,
+    previweAllowed: true,
+    courceManagementAllowed: false,
+    gradeSubmissionsAllowed: false,
+    reportsAllowed: true,
+  },
+  {
+    title:
+      "Introduction to Biology: Micro organisms and how they affect the other Life Systems in En...",
+    subject: "Biology",
+    grade: "Grade 4",
+    boost: "+1",
+    units: 5,
+    lessons: 16,
+    topics: 22,
+    classOptions: [
+      "All Classes",
+      "Mr. Frank's Class B",
+      "Mr. Frank's Class A",
+      "Mr. Frank's Class C",
+    ],
+    selectedClass: "All Classes",
+    students: 300,
+    dateRange: null,
+    image: "images/imageMask-3.png",
+    favouriteIcon: "icons/favourite.svg",
+    isExpired: false,
+    previweAllowed: true,
+    courceManagementAllowed: false,
+    gradeSubmissionsAllowed: false,
+    reportsAllowed: true,
+  },
+  {
+    title: "Introduction to High School Mathematics",
+    subject: "Mathematics",
+    grade: "Grade 8",
+    boost: "+5",
+    units: null,
+    lessons: null,
+    topics: null,
+    classOptions: [
+      "Mr. Frank's Class B",
+      "Mr. Frank's Class A",
+      "Mr. Frank's Class C",
+    ],
+    selectedClass: "Mr. Frank's Class B",
+    students: 44,
+    dateRange: "14-Oct-2019 - 20-Oct-2020",
+    image: "images/imageMask-2.png",
+    favouriteIcon: "icons/favourite_2.svg",
+    isExpired: true,
+    previweAllowed: true,
+    courceManagementAllowed: true,
+    gradeSubmissionsAllowed: true,
+    reportsAllowed: true
+  },
 ];
 
-// Load navbar
-fetch("navbar.html")
-    .then((response: Response) => response.text())
-    .then((data: string) => {
-        const navbarPlaceholder = document.getElementById("navbar-placeholder");
-        if (navbarPlaceholder) {
-            navbarPlaceholder.innerHTML = data;
-        }
-    })
-    .catch((error: Error) => {
-        console.error("Error loading navbar:", error);
-    });
-
-// Set active navigation link
-function setActiveNavLink(): void {
-    const navLinks: NodeListOf<Element> = document.querySelectorAll(".navbar_link");
-
-    navLinks.forEach((link: Element) => {
-        link.addEventListener("click", function (e: Event) {
-            navLinks.forEach((navLink: Element) => {
-                navLink.classList.remove("active");
-            });
-
-            (this as Element).classList.add("active");
-        });
-    });
-}
-
-// Set active controller
-function setActiveController(): void {
-    const controller: NodeListOf<Element> = document.querySelectorAll(".content_option");
-
-    controller.forEach((link: Element) => {
-        link.addEventListener("click", function (e: Event) {
-            controller.forEach((navLink: Element) => {
-                navLink.classList.remove("option_active");
-            });
-
-            (this as Element).classList.add("option_active");
-        });
-    });
-}
-
-// Generate markup
 const markup: string = `
   ${data
         .map((card: CardData) => {
@@ -219,10 +193,10 @@ const markup: string = `
               ${card.isExpired ? `<div class="card_label">EXPIRED</div>` : ""}
             </div>
             <div class="content_card_actions">
-              <img src="icons/preview.svg" alt="preview" />
-              <img src="icons/manage course.svg" alt="manage" />
-              <img src="icons/grade submissions.svg" alt="manage" />
-              <img src="icons/reports.svg" alt="manage" />
+              <img src=${card.previweAllowed ? "icons/preview.svg" : "icons/preview2.svg"} alt="preview" />
+               <img src=${card.courceManagementAllowed ? "icons/manageCourse.svg" : "icons/manageCourse2.svg"} alt="manage" />
+               <img src=${card.gradeSubmissionsAllowed ? "icons/gradeSubmissions.svg" : "icons/gradeSubmissions2.svg "} alt="icons/grade submissions"/>
+               <img src=${card.reportsAllowed ? "icons/reports.svg" : "icons/reports2.svg"} alt="manage" />
             </div>
           </div>
       `;
@@ -239,31 +213,40 @@ if (contentPlaceholder) {
 const button = document.getElementById("navbarToggle") as HTMLElement;
 const div = document.getElementById("navbarMob") as HTMLElement;
 
-let hideTimeout: NodeJS.Timeout | undefined;
-
-function showMenu(): void {
-    if (hideTimeout !== undefined) {
-        clearTimeout(hideTimeout);
-    }
-    if (div) {
-        div.style.display = "block";
-    }
-}
-
-function hideMenu(): void {
-    hideTimeout = setTimeout(() => {
-        if (div) {
-            div.style.display = "none";
-        }
-    }, 300);
-}
+let hideTimeout: ReturnType<typeof setTimeout> | undefined;
 
 if (button && div) {
-    button.addEventListener("mouseenter", showMenu);
-    button.addEventListener("mouseleave", hideMenu);
+    button.addEventListener("mouseenter", function (): void {
+        if (hideTimeout !== undefined) {
+            clearTimeout(hideTimeout);
+        }
+        if (div) {
+            div.style.display = "block";
+        }
+    });
+    button.addEventListener("mouseleave", function (): void {
+        hideTimeout = setTimeout(() => {
+            if (div) {
+                div.style.display = "none";
+            }
+        }, 300);
+    });
 
-    div.addEventListener("mouseenter", showMenu);
-    div.addEventListener("mouseleave", hideMenu);
+    div.addEventListener("mouseenter", function (): void {
+        if (hideTimeout !== undefined) {
+            clearTimeout(hideTimeout);
+        }
+        if (div) {
+            div.style.display = "block";
+        }
+    });
+    div.addEventListener("mouseleave", function (): void {
+        hideTimeout = setTimeout(() => {
+            if (div) {
+                div.style.display = "none";
+            }
+        }, 300);
+    });
 }
 
 // Alert functionality
@@ -271,7 +254,7 @@ const alertList = document.getElementById("alerts") as HTMLElement;
 const alertIcon = document.getElementById("alerts_icon") as HTMLImageElement;
 const alertCount = document.getElementById("alerts_count") as HTMLElement;
 
-let hideAlertTimeout: NodeJS.Timeout | undefined;
+let hideAlertTimeout: ReturnType<typeof setTimeout> | undefined;
 
 function showAlertList(): void {
     if (hideAlertTimeout !== undefined) {
@@ -286,16 +269,10 @@ function showAlertList(): void {
     if (alertCount) alertCount.style.display = "none";
 }
 
-// function hideAlertList(): void {
-//     hideAlertTimeout = setTimeout(() => {
-//         if (alertList) alertList.style.display = "none";
-//         if (alertIcon) alertIcon.src = "icons/alerts.svg";
-//         if (alertCount) alertCount.style.display = "flex";
-//     }, 300);
-// }
-
 if (alertIcon && alertList) {
-    alertIcon.addEventListener("mouseenter", showAlertList);
+    alertIcon.addEventListener("mouseenter", function () {
+        showAlertList();
+    });
     alertIcon.addEventListener("mouseleave", function (): void {
         hideAlertTimeout = setTimeout(() => {
             if (alertList) alertList.style.display = "none";
@@ -304,7 +281,9 @@ if (alertIcon && alertList) {
         }, 300);
     });
 
-    alertList.addEventListener("mouseenter", showAlertList);
+    alertList.addEventListener("mouseenter", function () {
+        showAlertList();
+    });
     alertList.addEventListener("mouseleave", function (): void {
         hideAlertTimeout = setTimeout(() => {
             if (alertList) alertList.style.display = "none";
@@ -319,7 +298,7 @@ const announcementList = document.getElementById("announcements") as HTMLElement
 const announcementIcon = document.getElementById("announcements_icon") as HTMLImageElement;
 const announcementCount = document.getElementById("announcements_count") as HTMLElement;
 
-let hideAnnouncementTimeout: NodeJS.Timeout | undefined;
+let hideAnnouncementTimeout: ReturnType<typeof setTimeout> | undefined;
 
 function showAnnouncementList(): void {
     if (hideAnnouncementTimeout !== undefined) {
@@ -343,11 +322,18 @@ function hideAnnouncementList(): void {
 }
 
 if (announcementIcon && announcementList) {
-    announcementIcon.addEventListener("mouseenter", showAnnouncementList);
-    announcementIcon.addEventListener("mouseleave", hideAnnouncementList);
-
-    announcementList.addEventListener("mouseenter", showAnnouncementList);
-    announcementList.addEventListener("mouseleave", hideAnnouncementList);
+    announcementIcon.addEventListener("mouseenter", function () {
+        showAnnouncementList();
+    });
+    announcementIcon.addEventListener("mouseleave", function () {
+        hideAnnouncementList()
+    });
+    announcementList.addEventListener("mouseenter", function () {
+        showAnnouncementList();
+    });
+    announcementList.addEventListener("mouseleave", function () {
+        hideAnnouncementList();
+    });
 }
 
 // Navbar accordion functionality
@@ -416,6 +402,26 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-    setActiveNavLink();
-    setActiveController();
+    const navLinks: NodeListOf<Element> = document.querySelectorAll(".navbar_link");
+    const controller: NodeListOf<Element> = document.querySelectorAll(".content_option");
+
+    navLinks.forEach((link: Element) => {
+        link.addEventListener("click", function (e: Event) {
+            navLinks.forEach((navLink: Element) => {
+                navLink.classList.remove("active");
+            });
+
+            (this as Element).classList.add("active");
+        });
+    });
+
+    controller.forEach((link: Element) => {
+        link.addEventListener("click", function (e: Event) {
+            controller.forEach((navLink: Element) => {
+                navLink.classList.remove("option_active");
+            });
+
+            (this as Element).classList.add("option_active");
+        });
+    });
 });

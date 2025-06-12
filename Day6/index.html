@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Boostrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+
+  <!-- CSS link -->
+  <link rel="stylesheet" href="styles/login.css" />
+
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="navbar-placeholder">
+    <div class="navbar_pattern">
+
+      <nav class="nav navbar px-4 py-0">
+        <img class="navbar-brand" src="logo.svg" alt="logo" />
+      </nav>
+    </div>
+  </div>
+
+  <div class="main_div">
+    <div class="form_div">
+      <div class="title_div">
+        <span><img src="icons/back.svg" alt="back" /></span>
+        <span class="title_text">Log in with Quantm</span>
+      </div>
+      <div class="radio_div">
+        <span>
+          <input type="radio" id="district" name="location" class="custom-radio" />
+          <label class="radio_text" for="district">District</label>
+        </span>
+        <span>
+          <input type="radio" id="schoole" name="location" class="custom-radio" />
+          <label class="radio_text" for="schoole">Independent School</label>
+        </span>
+      </div>
+      <div class="dropdown_div dropdown-container">
+        <label class="dropdown_label">State<sup>*</sup></label>
+        <select name="states" id="states" class="dropdown">
+          <option value="Albama">Albama</option>
+          <option value="Alaska">Alaska</option>
+          <option value="Arizona">Arizona</option>
+          <option value="Arkansas">Arkansas</option>
+          <option value="California">California</option>
+          <option value="Colorado">Colorado</option>
+          <option value="Connecticut">Connecticut</option>
+          <option value="Delaware">Delaware</option>
+          <option value="Florida">Florida</option>
+          <option value="Georgia">Georgia</option>
+        </select>
+      </div>
+      <div class="dropdown_div dropdown-container">
+        <label class="dropdown_label">District<sup>*</sup></label>
+        <select name="District" id="District" class="dropdown">
+          <option value="school">Albama School District</option>
+          <option value="school">Alaska School District</option>
+          <option value="school">Arizona School District</option>
+          <option value="school">Arkansas School District</option>
+          <option value="school">California School District</option>
+          <option value="school">Colorado School District</option>
+          <option value="school">Connecticut School District</option>
+          <option value="school">Delaware School District</option>
+          <option value="school">Florida School District</option>
+          <option value="school">Georgia School District</option>
+        </select>
+      </div>
+      <div class="input_field_div">
+        <input type="text" placeholder="Username/Email ID*" class="input_field" />
+        <span class="forgot_text">FORGOT USERNAME?</span>
+      </div>
+      <div class="input_field_div password_field">
+        <input type="password" placeholder="Password *" class="input_field" />
+        <img src="icons/preview.svg" alt="eye" class="eye_icon" />
+        <span class="forgot_text">FORGOT PASSWORD?</span>
+      </div>
+
+      <div class="checkBox_div">
+        <input type="checkbox" id="checkbox" class="checkbox" />
+        <label for="checkbox" class="checkbox_label">Remember me</label>
+      </div>
+
+      <div class="button_div">
+        <a href="dashboard.html">
+          <button class="button" id="login_button">LOG IN</button>
+        </a>
+      </div>
+    </div>
+    <div class="external_link_div">
+      <a href="#" class="external_link">About</a>
+      <div class="divider"></div>
+      <a href="#" class="external_link">Contact Us</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <img src="icons/logo used in footer.svg" alt="Quantm" class="quantm_icon" />
+    <div class="divider"></div>
+    <span class="footer_text">Copywright © 2020-2021
+      <a href="https://www.zeuslearning.com" class="footer_link" target="_blank">Zeus systems Pvt. Ltd.</a>
+      All rights reserved.</span>
+  </div>
+
+  <!-- Boostarp Javascript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
+  <script src="index.js"></script>
+</body>
+
+</html>
