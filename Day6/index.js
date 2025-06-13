@@ -1,3 +1,71 @@
+var alerts = [
+    {
+        "id": 1,
+        "type": "license_assignment",
+        "status": "unread",
+        "highlighted": true,
+        "title": "License for Introduction to Algebra has been assigned to your school",
+        "course": null,
+        "class": null,
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 2,
+        "type": "overdue_assignment",
+        "status": "read",
+        "highlighted": false,
+        "title": "Lesson 3 Practice Worksheet overdue for Amy Santiago",
+        "course": "Advanced Mathematics",
+        "class": null,
+        "timestamp": "15-Sep-2018 at 05:21 pm",
+        "close_icon": "icons/icons8-checkmark-18 (1).png"
+    },
+    {
+        "id": 3,
+        "type": "student_creation",
+        "status": "unread",
+        "highlighted": true,
+        "title": "23 new students created",
+        "course": null,
+        "class": null,
+        "timestamp": "14-Sep-2018 at 01:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 4,
+        "type": "submissions_ready",
+        "status": "unread",
+        "highlighted": true,
+        "title": "15 submissions ready for evaluation",
+        "course": null,
+        "class": "Basics of Algebra",
+        "timestamp": "15-Sep-2018 at 05:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 5,
+        "type": "license_assignment",
+        "status": "unread",
+        "highlighted": true,
+        "title": "License for Basic Concepts in Geometry has been assigned to your... school",
+        "course": null,
+        "class": null,
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 6,
+        "type": "overdue_assignment",
+        "status": "read",
+        "highlighted": false,
+        "title": "Lesson 3 Practice Worksheet overdue for Sam Diego",
+        "course": "Advanced Mathematics",
+        "class": null,
+        "timestamp": "15-Sep-2018 at 05:21 pm",
+        "close_icon": "icons/icons8-checkmark-18 (1).png"
+    }
+];
 var data = [
     {
         title: "Acceleration",
@@ -93,18 +161,72 @@ var data = [
         reportsAllowed: true
     },
 ];
-// // Load navbar
-// fetch("navbar.html")
-//     .then((response: Response) => response.text())
-//     .then((data: string) => {
-//         const navbarPlaceholder = document.getElementById("navbar-placeholder");
-//         if (navbarPlaceholder) {
-//             navbarPlaceholder.innerHTML = data;
-//         }
-//     })
-//     .catch((error: Error) => {
-//         console.error("Error loading navbar:", error);
-//     });
+var announcements = [
+    {
+        "id": 1,
+        "status": "read",
+        "highlighted": false,
+        "author": "Wilson Kumar",
+        "body": "No classes will be held on 21st Nov",
+        "course": null,
+        "attachments": {
+            "count": 2,
+            "icon": "./icons/icons8-attachment-24.png"
+        },
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-checkmark-18 (1).png"
+    },
+    {
+        "id": 2,
+        "status": "unread",
+        "highlighted": true,
+        "author": "Samson White",
+        "body": "Guest lecture on Geometry on 20th September",
+        "course": null,
+        "attachments": {
+            "count": 2,
+            "icon": "./icons/icons8-attachment-24.png"
+        },
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 3,
+        "status": "read",
+        "highlighted": false,
+        "author": "Wilson Kumar",
+        "body": "Additional course materials available on request",
+        "course": "Mathematics 101",
+        "attachments": null,
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-checkmark-18 (1).png"
+    },
+    {
+        "id": 4,
+        "status": "unread",
+        "highlighted": true,
+        "author": "Wilson Kumar",
+        "body": "No classes will be held on 25th Dec",
+        "course": null,
+        "attachments": null,
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 5,
+        "status": "unread",
+        "highlighted": true,
+        "author": "Wilson Kumar",
+        "body": "Additional course materials available on request",
+        "course": null,
+        "attachments": {
+            "count": 2,
+            "icon": "./icons/icons8-attachment-24.png"
+        },
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    }
+];
 var markup = "\n  ".concat(data
     .map(function (card) {
     var optionsMarkup = card.classOptions && card.classOptions.length > 0
@@ -137,9 +259,30 @@ var markup = "\n  ".concat(data
         : "", "\n              </div>\n              ").concat(card.isExpired ? "<div class=\"card_label\">EXPIRED</div>" : "", "\n            </div>\n            <div class=\"content_card_actions\">\n              <img src=").concat(card.previweAllowed ? "icons/preview.svg" : "icons/preview2.svg", " alt=\"preview\" />\n               <img src=").concat(card.courceManagementAllowed ? "icons/manageCourse.svg" : "icons/manageCourse2.svg", " alt=\"manage\" />\n               <img src=").concat(card.gradeSubmissionsAllowed ? "icons/gradeSubmissions.svg" : "icons/gradeSubmissions2.svg ", " alt=\"icons/grade submissions\"/>\n               <img src=").concat(card.reportsAllowed ? "icons/reports.svg" : "icons/reports2.svg", " alt=\"manage\" />\n            </div>\n          </div>\n      ");
 })
     .join(""), "\n");
+var alertMarkup = "\n        ".concat(alerts.map(function (alert) {
+    return "\n                <li class=\"alerts_list_item ".concat(alert.status === "unread" ? "bg_yellow" : "", "\">\n                        <div class=\"alerts_list_item_text space_between\">\n                          <div class=\"alerts_list_item_text_head\">\n                            ").concat(alert.title, "\n                          </div>\n                          <img src=").concat(alert.status === "unread" ? "icons/icons8-minus-18.png" : "icons/icons8-checkmark-18_check.png", " class=\"alerts_list_item_text_head_close\" alt=\"close\" />\n                        </div>\n                        ").concat(alert.course != null ?
+        "<div class=\"alerts_list_item_text\">\n                                <span class=\"text_light\">Course:</span> ".concat(alert.course, "\n                            </div>")
+        : "", "\n                        ").concat(alert.timestamp != null ?
+        "<div class=\"alerts_list_item_time_stamp\">\n                                ".concat(alert.timestamp, "\n                            </div>")
+        : "", "\n                        \n                      </li>\n                ");
+}).join(""), "\n");
+var announcementMarkup = "\n        ".concat(announcements.map(function (announcement) {
+    return "\n            <li class=\"alerts_list_item ".concat(announcement.status === "unread" ? "bg_yellow" : "", "\">\n                <div class=\"anouncements_list_item_head\">\n                    <div class=\"anouncements_list_item_text_head\">\n                    <span>PA: </span> ").concat(announcement.author, "\n                    </div>\n                    <img src=").concat(announcement.status === "unread" ? "icons/icons8-minus-18.png" : "icons/icons8-checkmark-18_check.png", " class=\"anouncements_list_item_text_head_close\"\n                    alt=\"close\" />\n                </div>\n                <div class=\"anouncements_list_item_body\">\n                    ").concat(announcement.body, "\n                </div>\n                ").concat(announcement.course != null ?
+        "\n                    <span>\n                        Course: ".concat(announcement.course, "\n                    </span>\n                    ") : "", "\n                <div class=\"anouncements_list_item_time_stamp\">\n                    ").concat(announcement.attachments != null
+        ? "<img width=\"14\" height=\"15\" src=".concat(announcement.attachments.icon, " alt=\"attach\"/> ").concat(announcement.attachments.count, " files are attached")
+        : "", "\n                    <span>").concat(announcement.timestamp, "</span>\n                </div>\n            </li>\n            ");
+}).join(""), "\n");
 var contentPlaceholder = document.getElementById("content-placeholder");
 if (contentPlaceholder) {
     contentPlaceholder.innerHTML = markup;
+}
+var alerPlaceholder = document.getElementById("alerts_placeholder");
+if (alerPlaceholder) {
+    alerPlaceholder.innerHTML = alertMarkup;
+}
+var anouncementPlaceholder = document.getElementById("anouncements_placeholder");
+if (anouncementPlaceholder) {
+    anouncementPlaceholder.innerHTML = announcementMarkup;
 }
 // Mobile menu functionality
 var button = document.getElementById("navbarToggle");
@@ -195,7 +338,7 @@ function showAlertList() {
     if (alertList)
         alertList.style.display = "flex";
     if (alertIcon)
-        alertIcon.src = "icons/alerts 2.svg";
+        alertIcon.src = "icons/alerts2.svg";
     if (alertCount)
         alertCount.style.display = "none";
 }
@@ -245,7 +388,7 @@ function showAnnouncementList() {
     if (announcementList)
         announcementList.style.display = "flex";
     if (announcementIcon)
-        announcementIcon.src = "icons/announcements 2.svg";
+        announcementIcon.src = "icons/announcements2.svg";
     if (announcementCount)
         announcementCount.style.display = "none";
 }

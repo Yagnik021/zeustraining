@@ -253,7 +253,6 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .announcements
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  transition: opacity 1s ease;
 }
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_links .announcements ul,
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .announcements ul {

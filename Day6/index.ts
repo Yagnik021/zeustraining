@@ -19,101 +19,268 @@ interface CardData {
     reportsAllowed: boolean;
 }
 
+interface Alert {
+    id: number;
+    type: string;
+    status: string;
+    highlighted: boolean;
+    title: string;
+    course: string | null;
+    class: string | null;
+    timestamp: string;
+    close_icon: string;
+}
+
+interface AttachmentInfo {
+    count: number;
+    icon: string;
+}
+
+interface Announcement {
+    id: number;
+    status: string;
+    highlighted: boolean;
+    author: string;
+    body: string;
+    course: string | null;
+    attachments: AttachmentInfo | null;
+    timestamp: string;
+    close_icon: string;
+}
+
+
+
+const alerts: Alert[] = [
+    {
+        "id": 1,
+        "type": "license_assignment",
+        "status": "unread",
+        "highlighted": true,
+        "title": "License for Introduction to Algebra has been assigned to your school",
+        "course": null,
+        "class": null,
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 2,
+        "type": "overdue_assignment",
+        "status": "read",
+        "highlighted": false,
+        "title": "Lesson 3 Practice Worksheet overdue for Amy Santiago",
+        "course": "Advanced Mathematics",
+        "class": null,
+        "timestamp": "15-Sep-2018 at 05:21 pm",
+        "close_icon": "icons/icons8-checkmark-18 (1).png"
+    },
+    {
+        "id": 3,
+        "type": "student_creation",
+        "status": "unread",
+        "highlighted": true,
+        "title": "23 new students created",
+        "course": null,
+        "class": null,
+        "timestamp": "14-Sep-2018 at 01:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 4,
+        "type": "submissions_ready",
+        "status": "unread",
+        "highlighted": true,
+        "title": "15 submissions ready for evaluation",
+        "course": null,
+        "class": "Basics of Algebra",
+        "timestamp": "15-Sep-2018 at 05:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 5,
+        "type": "license_assignment",
+        "status": "unread",
+        "highlighted": true,
+        "title": "License for Basic Concepts in Geometry has been assigned to your... school",
+        "course": null,
+        "class": null,
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 6,
+        "type": "overdue_assignment",
+        "status": "read",
+        "highlighted": false,
+        "title": "Lesson 3 Practice Worksheet overdue for Sam Diego",
+        "course": "Advanced Mathematics",
+        "class": null,
+        "timestamp": "15-Sep-2018 at 05:21 pm",
+        "close_icon": "icons/icons8-checkmark-18 (1).png"
+    }
+];
+
 const data: CardData[] = [
     {
-    title: "Acceleration",
-    subject: "Physics",
-    grade: "Grade 7",
-    boost: "+2",
-    units: 4,
-    lessons: 18,
-    topics: 24,
-    classOptions: [
-      "Mr. Frank's Class B",
-      "Mr. Frank's Class A",
-      "Mr. Frank's Class C",
-    ],
-    selectedClass: "Mr. Frank's Class B",
-    students: 50,
-    dateRange: "21-Aug-2020 - 21-Aug-2020",
-    image: "images/imageMask.png",
-    favouriteIcon: "icons/favourite.svg",
-    isExpired: false,
-    previweAllowed: true,
-    courceManagementAllowed: true,
-    gradeSubmissionsAllowed: true,
-    reportsAllowed: true,
-  },
-  {
-    title: "Displacement, Velocity and Speed",
-    subject: "Physics",
-    grade: "Grade 6",
-    boost: "+3",
-    units: 2,
-    lessons: 15,
-    topics: 20,
-    classOptions: ["Math", "Science"],
-    selectedClass: null, // "No classes" was selected
-    students: null,
-    dateRange: null,
-    image: "images/imageMask-1.png",
-    favouriteIcon: "icons/favourite.svg",
-    isExpired: false,
-    previweAllowed: true,
-    courceManagementAllowed: false,
-    gradeSubmissionsAllowed: false,
-    reportsAllowed: true,
-  },
-  {
-    title:
-      "Introduction to Biology: Micro organisms and how they affect the other Life Systems in En...",
-    subject: "Biology",
-    grade: "Grade 4",
-    boost: "+1",
-    units: 5,
-    lessons: 16,
-    topics: 22,
-    classOptions: [
-      "All Classes",
-      "Mr. Frank's Class B",
-      "Mr. Frank's Class A",
-      "Mr. Frank's Class C",
-    ],
-    selectedClass: "All Classes",
-    students: 300,
-    dateRange: null,
-    image: "images/imageMask-3.png",
-    favouriteIcon: "icons/favourite.svg",
-    isExpired: false,
-    previweAllowed: true,
-    courceManagementAllowed: false,
-    gradeSubmissionsAllowed: false,
-    reportsAllowed: true,
-  },
-  {
-    title: "Introduction to High School Mathematics",
-    subject: "Mathematics",
-    grade: "Grade 8",
-    boost: "+5",
-    units: null,
-    lessons: null,
-    topics: null,
-    classOptions: [
-      "Mr. Frank's Class B",
-      "Mr. Frank's Class A",
-      "Mr. Frank's Class C",
-    ],
-    selectedClass: "Mr. Frank's Class B",
-    students: 44,
-    dateRange: "14-Oct-2019 - 20-Oct-2020",
-    image: "images/imageMask-2.png",
-    favouriteIcon: "icons/favourite_2.svg",
-    isExpired: true,
-    previweAllowed: true,
-    courceManagementAllowed: true,
-    gradeSubmissionsAllowed: true,
-    reportsAllowed: true
-  },
+        title: "Acceleration",
+        subject: "Physics",
+        grade: "Grade 7",
+        boost: "+2",
+        units: 4,
+        lessons: 18,
+        topics: 24,
+        classOptions: [
+            "Mr. Frank's Class B",
+            "Mr. Frank's Class A",
+            "Mr. Frank's Class C",
+        ],
+        selectedClass: "Mr. Frank's Class B",
+        students: 50,
+        dateRange: "21-Aug-2020 - 21-Aug-2020",
+        image: "images/imageMask.png",
+        favouriteIcon: "icons/favourite.svg",
+        isExpired: false,
+        previweAllowed: true,
+        courceManagementAllowed: true,
+        gradeSubmissionsAllowed: true,
+        reportsAllowed: true,
+    },
+    {
+        title: "Displacement, Velocity and Speed",
+        subject: "Physics",
+        grade: "Grade 6",
+        boost: "+3",
+        units: 2,
+        lessons: 15,
+        topics: 20,
+        classOptions: ["Math", "Science"],
+        selectedClass: null, // "No classes" was selected
+        students: null,
+        dateRange: null,
+        image: "images/imageMask-1.png",
+        favouriteIcon: "icons/favourite.svg",
+        isExpired: false,
+        previweAllowed: true,
+        courceManagementAllowed: false,
+        gradeSubmissionsAllowed: false,
+        reportsAllowed: true,
+    },
+    {
+        title:
+            "Introduction to Biology: Micro organisms and how they affect the other Life Systems in En...",
+        subject: "Biology",
+        grade: "Grade 4",
+        boost: "+1",
+        units: 5,
+        lessons: 16,
+        topics: 22,
+        classOptions: [
+            "All Classes",
+            "Mr. Frank's Class B",
+            "Mr. Frank's Class A",
+            "Mr. Frank's Class C",
+        ],
+        selectedClass: "All Classes",
+        students: 300,
+        dateRange: null,
+        image: "images/imageMask-3.png",
+        favouriteIcon: "icons/favourite.svg",
+        isExpired: false,
+        previweAllowed: true,
+        courceManagementAllowed: false,
+        gradeSubmissionsAllowed: false,
+        reportsAllowed: true,
+    },
+    {
+        title: "Introduction to High School Mathematics",
+        subject: "Mathematics",
+        grade: "Grade 8",
+        boost: "+5",
+        units: null,
+        lessons: null,
+        topics: null,
+        classOptions: [
+            "Mr. Frank's Class B",
+            "Mr. Frank's Class A",
+            "Mr. Frank's Class C",
+        ],
+        selectedClass: "Mr. Frank's Class B",
+        students: 44,
+        dateRange: "14-Oct-2019 - 20-Oct-2020",
+        image: "images/imageMask-2.png",
+        favouriteIcon: "icons/favourite_2.svg",
+        isExpired: true,
+        previweAllowed: true,
+        courceManagementAllowed: true,
+        gradeSubmissionsAllowed: true,
+        reportsAllowed: true
+    },
+];
+
+const announcements: Announcement[] = [
+    {
+        "id": 1,
+        "status": "read",
+        "highlighted": false,
+        "author": "Wilson Kumar",
+        "body": "No classes will be held on 21st Nov",
+        "course": null,
+        "attachments": {
+            "count": 2,
+            "icon": "./icons/icons8-attachment-24.png"
+        },
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-checkmark-18 (1).png"
+    },
+    {
+        "id": 2,
+        "status": "unread",
+        "highlighted": true,
+        "author": "Samson White",
+        "body": "Guest lecture on Geometry on 20th September",
+        "course": null,
+        "attachments": {
+            "count": 2,
+            "icon": "./icons/icons8-attachment-24.png"
+        },
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 3,
+        "status": "read",
+        "highlighted": false,
+        "author": "Wilson Kumar",
+        "body": "Additional course materials available on request",
+        "course": "Mathematics 101",
+        "attachments": null,
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-checkmark-18 (1).png"
+    },
+    {
+        "id": 4,
+        "status": "unread",
+        "highlighted": true,
+        "author": "Wilson Kumar",
+        "body": "No classes will be held on 25th Dec",
+        "course": null,
+        "attachments": null,
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    },
+    {
+        "id": 5,
+        "status": "unread",
+        "highlighted": true,
+        "author": "Wilson Kumar",
+        "body": "Additional course materials available on request",
+        "course": null,
+        "attachments": {
+            "count": 2,
+            "icon": "./icons/icons8-attachment-24.png"
+        },
+        "timestamp": "15-Sep-2018 at 07:21 pm",
+        "close_icon": "icons/icons8-minus-18.png"
+    }
 ];
 
 const markup: string = `
@@ -204,9 +371,83 @@ const markup: string = `
         .join("")}
 `;
 
+const alertMarkup: string = `
+        ${alerts.map((alert: Alert) => {
+    return `
+                <li class="alerts_list_item ${alert.status === "unread" ? "bg_yellow" : ""}">
+                        <div class="alerts_list_item_text space_between">
+                          <div class="alerts_list_item_text_head">
+                            ${alert.title}
+                          </div>
+                          <img src=${alert.status === "unread" ? "icons/icons8-minus-18.png" : "icons/icons8-checkmark-18_check.png"} class="alerts_list_item_text_head_close" alt="close" />
+                        </div>
+                        ${alert.course != null ?
+            `<div class="alerts_list_item_text">
+                                <span class="text_light">Course:</span> ${alert.course}
+                            </div>`
+            : ""
+        }
+                        ${alert.timestamp != null ?
+            `<div class="alerts_list_item_time_stamp">
+                                ${alert.timestamp}
+                            </div>`
+            : ""
+        }
+                        
+                      </li>
+                `
+}).join("")
+    }
+`
+
+const announcementMarkup: string = `
+        ${announcements.map((announcement: Announcement) => {
+            return `
+            <li class="alerts_list_item ${announcement.status === "unread" ? "bg_yellow" : ""}">
+                <div class="anouncements_list_item_head">
+                    <div class="anouncements_list_item_text_head">
+                    <span>PA: </span> ${announcement.author}
+                    </div>
+                    <img src=${announcement.status === "unread" ? "icons/icons8-minus-18.png" : "icons/icons8-checkmark-18_check.png"} class="anouncements_list_item_text_head_close"
+                    alt="close" />
+                </div>
+                <div class="anouncements_list_item_body">
+                    ${announcement.body}
+                </div>
+                ${
+                    announcement.course != null ?
+                    `
+                    <span>
+                        Course: ${announcement.course}
+                    </span>
+                    ` : ""
+                }
+                <div class="anouncements_list_item_time_stamp">
+                    ${
+                        announcement.attachments != null
+                        ? `<img width="14" height="15" src=${announcement.attachments.icon} alt="attach"/> ${announcement.attachments.count} files are attached`
+                        : ""
+                    }
+                    <span>${announcement.timestamp}</span>
+                </div>
+            </li>
+            `;
+        }).join("")}
+`;
+
 const contentPlaceholder = document.getElementById("content-placeholder");
 if (contentPlaceholder) {
     contentPlaceholder.innerHTML = markup;
+}
+
+const alerPlaceholder = document.getElementById("alerts_placeholder");
+if (alerPlaceholder) {
+    alerPlaceholder.innerHTML = alertMarkup;
+}
+
+const anouncementPlaceholder = document.getElementById("anouncements_placeholder");
+if (anouncementPlaceholder) {
+    anouncementPlaceholder.innerHTML = announcementMarkup;
 }
 
 // Mobile menu functionality
@@ -265,7 +506,7 @@ function showAlertList(): void {
     if (announcementIcon) announcementIcon.src = "icons/announcements.svg";
     if (announcementCount) announcementCount.style.display = "flex";
     if (alertList) alertList.style.display = "flex";
-    if (alertIcon) alertIcon.src = "icons/alerts 2.svg";
+    if (alertIcon) alertIcon.src = "icons/alerts2.svg";
     if (alertCount) alertCount.style.display = "none";
 }
 
@@ -309,7 +550,7 @@ function showAnnouncementList(): void {
     if (alertIcon) alertIcon.src = "icons/alerts.svg";
     if (alertCount) alertCount.style.display = "flex";
     if (announcementList) announcementList.style.display = "flex";
-    if (announcementIcon) announcementIcon.src = "icons/announcements 2.svg";
+    if (announcementIcon) announcementIcon.src = "icons/announcements2.svg";
     if (announcementCount) announcementCount.style.display = "none";
 }
 
