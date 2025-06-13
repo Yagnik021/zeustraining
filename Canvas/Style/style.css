@@ -1,0 +1,29 @@
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100vh;
+}
+body .canvas_div {
+  width: 500px;
+  height: 500px;
+  border: 1px solid black;
+}
+body .canvas_div canvas {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed red;
+}/*# sourceMappingURL=style.css.map */

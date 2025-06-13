@@ -294,13 +294,17 @@ if (button && div) {
             clearTimeout(hideTimeout);
         }
         if (div) {
-            div.style.display = "block";
+            div.style.visibility = "visible";
+            div.style.opacity = "100%";
+            div.style.zIndex = "5";
         }
     });
     button.addEventListener("mouseleave", function () {
         hideTimeout = setTimeout(function () {
             if (div) {
-                div.style.display = "none";
+                div.style.visibility = "hidden";
+                div.style.opacity = "0";
+                div.style.zIndex = "-1";
             }
         }, 300);
     });
@@ -309,13 +313,17 @@ if (button && div) {
             clearTimeout(hideTimeout);
         }
         if (div) {
-            div.style.display = "block";
+            div.style.visibility = "visible";
+            div.style.opacity = "100%";
+            div.style.zIndex = "5";
         }
     });
     div.addEventListener("mouseleave", function () {
         hideTimeout = setTimeout(function () {
             if (div) {
-                div.style.display = "none";
+                div.style.visibility = "hidden";
+                div.style.opacity = "0";
+                div.style.zIndex = "-1";
             }
         }, 300);
     });
@@ -330,17 +338,27 @@ function showAlertList() {
         clearTimeout(hideAlertTimeout);
     }
     if (announcementList)
-        announcementList.style.display = "none";
+        announcementList.style.visibility = "hidden";
+    if (announcementList)
+        announcementList.style.opacity = "0";
+    if (announcementList)
+        announcementList.style.opacity = "0";
     if (announcementIcon)
         announcementIcon.src = "icons/announcements.svg";
     if (announcementCount)
-        announcementCount.style.display = "flex";
+        announcementCount.style.visibility = "visible";
+    if (announcementCount)
+        announcementCount.style.opacity = "100%";
     if (alertList)
-        alertList.style.display = "flex";
+        alertList.style.visibility = "visible";
+    if (alertList)
+        alertList.style.opacity = "100%";
     if (alertIcon)
         alertIcon.src = "icons/alerts2.svg";
     if (alertCount)
-        alertCount.style.display = "none";
+        alertCount.style.visibility = "hidden";
+    if (alertCount)
+        alertCount.style.opacity = "0";
 }
 if (alertIcon && alertList) {
     alertIcon.addEventListener("mouseenter", function () {
@@ -349,11 +367,15 @@ if (alertIcon && alertList) {
     alertIcon.addEventListener("mouseleave", function () {
         hideAlertTimeout = setTimeout(function () {
             if (alertList)
-                alertList.style.display = "none";
+                alertList.style.visibility = "hidden";
+            if (alertList)
+                alertList.style.opacity = "0";
             if (alertIcon)
                 alertIcon.src = "icons/alerts.svg";
             if (alertCount)
-                alertCount.style.display = "flex";
+                alertCount.style.visibility = "visible";
+            if (alertCount)
+                alertCount.style.opacity = "100%";
         }, 300);
     });
     alertList.addEventListener("mouseenter", function () {
@@ -362,11 +384,17 @@ if (alertIcon && alertList) {
     alertList.addEventListener("mouseleave", function () {
         hideAlertTimeout = setTimeout(function () {
             if (alertList)
-                alertList.style.display = "none";
+                alertList.style.visibility = "hidden";
+            if (alertList)
+                alertList.style.opacity = "0";
+            if (alertList)
+                alertList.style.opacity = "0";
             if (alertIcon)
                 alertIcon.src = "icons/alerts.svg";
             if (alertCount)
-                alertCount.style.display = "flex";
+                alertCount.style.visibility = "visible";
+            if (alertCount)
+                alertCount.style.opacity = "100%";
         }, 300);
     });
 }
@@ -380,26 +408,41 @@ function showAnnouncementList() {
         clearTimeout(hideAnnouncementTimeout);
     }
     if (alertList)
-        alertList.style.display = "none";
+        alertList.style.visibility = "hidden";
+    if (alertList)
+        alertList.style.opacity = "0";
     if (alertIcon)
         alertIcon.src = "icons/alerts.svg";
     if (alertCount)
-        alertCount.style.display = "flex";
+        alertCount.style.visibility = "visible";
+    if (alertCount)
+        alertCount.style.opacity = "100%";
     if (announcementList)
-        announcementList.style.display = "flex";
+        announcementList.style.visibility = "visible";
+    if (announcementList)
+        announcementList.style.opacity = "100%";
     if (announcementIcon)
         announcementIcon.src = "icons/announcements2.svg";
     if (announcementCount)
-        announcementCount.style.display = "none";
+        announcementCount.style.visibility = "hidden";
+    if (announcementCount)
+        announcementCount.style.opacity = "0";
+    ;
+    if (announcementCount)
+        announcementCount.style.opacity = "0";
 }
 function hideAnnouncementList() {
     hideAnnouncementTimeout = setTimeout(function () {
         if (announcementList)
-            announcementList.style.display = "none";
+            announcementList.style.visibility = "hidden";
+        if (announcementList)
+            announcementList.style.opacity = "0";
         if (announcementIcon)
             announcementIcon.src = "icons/announcements.svg";
         if (announcementCount)
-            announcementCount.style.display = "flex";
+            announcementCount.style.visibility = "visible";
+        if (announcementCount)
+            announcementCount.style.opacity = "100%";
     }, 300);
 }
 if (announcementIcon && announcementList) {

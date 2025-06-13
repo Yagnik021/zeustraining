@@ -125,10 +125,6 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons li.active a {
     border-radius: 4px;
     transition: background-color 0.2s;
   }
-  body .main_div .navbar_pattern .navbar .navbar_main .navbar_links.navbar_links li a:hover,
-  body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons.navbar_links li a:hover {
-    background-color: rgba(63, 210, 139, 0.1);
-  }
   body .main_div .navbar_pattern .navbar .navbar_main .navbar_links.navbar_links li.active,
   body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons.navbar_links li.active {
     border-bottom: 2px solid white;
@@ -144,7 +140,9 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons li.active a {
 }
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_links .alerts,
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .alerts {
-  display: none;
+  display: flex;
+  visibility: hidden;
+  opacity: 0;
   position: absolute;
   top: 150%;
   right: 0;
@@ -159,7 +157,7 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .alerts {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.5s ease;
 }
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_links .alerts ul,
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .alerts ul {
@@ -238,7 +236,8 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .alerts .icons
 }
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_links .announcements,
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .announcements {
-  display: none;
+  visibility: hidden;
+  opacity: 0;
   position: absolute;
   top: 150%;
   right: 0;
@@ -253,6 +252,7 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .announcements
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  transition: ease-in 0.5s;
 }
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_links .announcements ul,
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .announcements ul {
@@ -428,7 +428,8 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .navbar-toggle
 }
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_links .navbar-toggler .navbar_mob,
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .navbar-toggler .navbar_mob {
-  display: none;
+  visibility: hidden;
+  opacity: 0;
   position: absolute;
   top: 110%;
   box-shadow: 0px 13px 20px rgba(0, 0, 0, 0.2392156863);
@@ -438,7 +439,7 @@ body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .navbar-toggle
   z-index: 5;
   font-size: 12px;
   width: 300px;
-  transition: opacity 1s ease;
+  transition: opacity 0.5s ease;
 }
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_links .navbar-toggler .navbar_mob .navbar_links_mob,
 body .main_div .navbar_pattern .navbar .navbar_main .navbar_icons .navbar-toggler .navbar_mob .navbar_links_mob {

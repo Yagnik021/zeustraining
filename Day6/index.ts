@@ -462,13 +462,17 @@ if (button && div) {
             clearTimeout(hideTimeout);
         }
         if (div) {
-            div.style.display = "block";
+            div.style.visibility = "visible";
+            div.style.opacity = "100%";
+            div.style.zIndex = "5";
         }
     });
     button.addEventListener("mouseleave", function (): void {
         hideTimeout = setTimeout(() => {
             if (div) {
-                div.style.display = "none";
+                div.style.visibility = "hidden";
+                div.style.opacity = "0";
+                div.style.zIndex = "-1";
             }
         }, 300);
     });
@@ -478,13 +482,17 @@ if (button && div) {
             clearTimeout(hideTimeout);
         }
         if (div) {
-            div.style.display = "block";
+            div.style.visibility = "visible";
+            div.style.opacity = "100%";
+            div.style.zIndex = "5";
         }
     });
     div.addEventListener("mouseleave", function (): void {
         hideTimeout = setTimeout(() => {
             if (div) {
-                div.style.display = "none";
+                div.style.visibility = "hidden";
+                div.style.opacity = "0";
+                div.style.zIndex = "-1";
             }
         }, 300);
     });
@@ -502,12 +510,17 @@ function showAlertList(): void {
         clearTimeout(hideAlertTimeout);
     }
 
-    if (announcementList) announcementList.style.display = "none";
+    if (announcementList) announcementList.style.visibility = "hidden";
+    if (announcementList) announcementList.style.opacity = "0";
+    if (announcementList) announcementList.style.opacity = "0";
     if (announcementIcon) announcementIcon.src = "icons/announcements.svg";
-    if (announcementCount) announcementCount.style.display = "flex";
-    if (alertList) alertList.style.display = "flex";
+    if (announcementCount) announcementCount.style.visibility = "visible";
+    if (announcementCount) announcementCount.style.opacity = "100%";
+    if (alertList) alertList.style.visibility = "visible";
+    if (alertList) alertList.style.opacity = "100%";
     if (alertIcon) alertIcon.src = "icons/alerts2.svg";
-    if (alertCount) alertCount.style.display = "none";
+    if (alertCount) alertCount.style.visibility = "hidden";
+    if (alertCount) alertCount.style.opacity = "0";
 }
 
 if (alertIcon && alertList) {
@@ -516,9 +529,11 @@ if (alertIcon && alertList) {
     });
     alertIcon.addEventListener("mouseleave", function (): void {
         hideAlertTimeout = setTimeout(() => {
-            if (alertList) alertList.style.display = "none";
+            if (alertList) alertList.style.visibility = "hidden";
+            if (alertList) alertList.style.opacity = "0";
             if (alertIcon) alertIcon.src = "icons/alerts.svg";
-            if (alertCount) alertCount.style.display = "flex";
+            if (alertCount) alertCount.style.visibility = "visible";
+            if (alertCount) alertCount.style.opacity = "100%";
         }, 300);
     });
 
@@ -527,9 +542,12 @@ if (alertIcon && alertList) {
     });
     alertList.addEventListener("mouseleave", function (): void {
         hideAlertTimeout = setTimeout(() => {
-            if (alertList) alertList.style.display = "none";
+            if (alertList) alertList.style.visibility = "hidden";
+            if (alertList) alertList.style.opacity = "0";
+            if (alertList) alertList.style.opacity = "0";
             if (alertIcon) alertIcon.src = "icons/alerts.svg";
-            if (alertCount) alertCount.style.display = "flex";
+            if (alertCount) alertCount.style.visibility = "visible";
+            if (alertCount) alertCount.style.opacity = "100%";
         }, 300);
     });
 }
@@ -546,19 +564,26 @@ function showAnnouncementList(): void {
         clearTimeout(hideAnnouncementTimeout);
     }
 
-    if (alertList) alertList.style.display = "none";
+    if (alertList) alertList.style.visibility = "hidden";
+    if (alertList) alertList.style.opacity = "0";
     if (alertIcon) alertIcon.src = "icons/alerts.svg";
-    if (alertCount) alertCount.style.display = "flex";
-    if (announcementList) announcementList.style.display = "flex";
+    if (alertCount) alertCount.style.visibility = "visible";
+    if (alertCount) alertCount.style.opacity = "100%";
+    if (announcementList) announcementList.style.visibility = "visible";
+    if (announcementList) announcementList.style.opacity = "100%";
     if (announcementIcon) announcementIcon.src = "icons/announcements2.svg";
-    if (announcementCount) announcementCount.style.display = "none";
+    if (announcementCount) announcementCount.style.visibility = "hidden";
+    if (announcementCount) announcementCount.style.opacity = "0";;
+    if (announcementCount) announcementCount.style.opacity = "0";
 }
 
 function hideAnnouncementList(): void {
     hideAnnouncementTimeout = setTimeout(() => {
-        if (announcementList) announcementList.style.display = "none";
+        if (announcementList) announcementList.style.visibility = "hidden";
+        if (announcementList) announcementList.style.opacity = "0";
         if (announcementIcon) announcementIcon.src = "icons/announcements.svg";
-        if (announcementCount) announcementCount.style.display = "flex";
+        if (announcementCount) announcementCount.style.visibility = "visible";
+        if (announcementCount) announcementCount.style.opacity = "100%";
     }, 300);
 }
 
