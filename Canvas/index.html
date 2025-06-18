@@ -1,20 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Paint Tool</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-    <link rel="stylesheet" href="Style/style.css">
+        .tools {
+            width: 200px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-right: 1px solid #ccc;
+        }
+
+        .tools button,
+        .tools input {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        canvas {
+            flex: 1;
+            border: 1px solid #ccc;
+            cursor: crosshair;
+        }
+    </style>
 </head>
+
 <body>
-    
-    <div class="canvas_div">
-        <canvas id="drawingCanvas">
-
-        </canvas>
+    <div class="tools" id="tools">
+        <button onclick="setTool('line')">Line</button>
+        <button onclick="setTool('rect')">Rectangle</button>
+        <button onclick="setTool('circle')">Circle</button>
+        <button onclick="setTool('triangle')">Triangle</button>
+        <button onclick="setTool('freehand')">Freehand</button>
+        <button onclick="setTool('text')">Text</button>
+        <button onclick="setTool('eraser')">Eraser</button>
+        <label>Stroke Color<input type="color" id="colorPicker" value="#000000"></label>
+        <label>Fill Color<input type="color" id="fillColor" value="#ffffff"></label>
+        <label><input type="checkbox" id="fillToggle" checked> Fill Shape</label>
+        <label>Line Width<input type="range" id="lineWidth" min="1" max="20" value="2"></label>
+        <button onclick="clearCanvas()">Clear Canvas</button>
     </div>
+    <canvas id="paintCanvas"></canvas>
 
-    <script src="JS/index.js"></script>
+    <script>
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth - document.getElementById('tools').offsetWidth;
+        canvas.height = window.innerHeight;
+
+        let tool = 'line';
+        let drawing = false;
+        let startX = 0, startY = 0;
+        let currentPath = [];
+
+        const previewCanvas = document.createElement('canvas');
+        const previewCtx = previewCanvas.getContext('2d');
+        previewCanvas.width = canvas.width;
+        previewCanvas.height = canvas.height;
+        previewCanvas.style.position = 'absolute';
+        previewCanvas.style.left = `${document.getElementById('tools').offsetWidth}px`;
+        previewCanvas.style.top = '0';
+        previewCanvas.style.pointerEvents = 'none';
+        document.body.appendChild(previewCanvas);
+
+
+
+
+        function setTool(t) {
+            tool = t;
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            startX = e.offsetX;
+            startY = e.offsetY;
+            ctx.strokeStyle = document.getElementById('colorPicker').value;
+            ctx.fillStyle = document.getElementById('fillColor').value;
+            ctx.lineWidth = document.getElementById('lineWidth').value;
+            if (tool === 'text') {
+                const text = prompt('Enter your text:');
+                if (text) {
+                    ctx.fillText(text, startX, startY);
+                }
+            } else {
+                drawing = true;
+                if (tool === 'freehand' || tool === 'eraser') {
+                    currentPath = [{ x: startX, y: startY }];
+                    console.log(currentPath , " : clinked");                    
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!drawing) return;
+            const mouseX = e.offsetX;
+            const mouseY = e.offsetY;
+
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            previewCtx.strokeStyle = document.getElementById('colorPicker').value;
+            previewCtx.lineWidth = document.getElementById('lineWidth').value;
+
+            if (tool === 'freehand' || tool === 'eraser') {
+                currentPath.push({ x: mouseX, y: mouseY });
+                ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : document.getElementById('colorPicker').value;
+                ctx.lineWidth = document.getElementById('lineWidth').value;
+                ctx.beginPath();
+                ctx.moveTo(currentPath[0].x, currentPath[0].y);
+                for (let i = 1; i < currentPath.length; i++) {
+                    ctx.lineTo(currentPath[i].x, currentPath[i].y);
+                }
+                ctx.stroke();
+                if (tool === 'eraser') {
+                    previewCtx.beginPath();
+                    previewCtx.strokeStyle = '#999';
+                    previewCtx.lineWidth = 1;
+                    previewCtx.rect(mouseX - ctx.lineWidth / 2, mouseY - ctx.lineWidth / 2, ctx.lineWidth, ctx.lineWidth);
+                    previewCtx.stroke();
+                }
+            } else {
+                previewCtx.beginPath();
+                switch (tool) {
+                    case 'line':
+                        previewCtx.moveTo(startX, startY);
+                        previewCtx.lineTo(mouseX, mouseY);
+                        break;
+                    case 'rect':
+                        previewCtx.rect(startX, startY, mouseX - startX, mouseY - startY);
+                        break;
+                    case 'circle':
+                        const radius = Math.sqrt(Math.pow(mouseX - startX, 2) + Math.pow(mouseY - startY, 2));
+                        previewCtx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                        break;
+                    case 'triangle':
+                        previewCtx.moveTo(startX, startY);
+                        previewCtx.lineTo(mouseX, mouseY);
+                        previewCtx.lineTo(startX * 2 - mouseX, mouseY);
+                        previewCtx.closePath();
+                        break;
+                }
+                previewCtx.stroke();
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (!drawing) return;
+            const endX = e.offsetX;
+            const endY = e.offsetY;
+            drawing = false;
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+            ctx.strokeStyle = document.getElementById('colorPicker').value;
+            ctx.fillStyle = document.getElementById('fillColor').value;
+            ctx.lineWidth = document.getElementById('lineWidth').value;
+
+            ctx.beginPath();
+            switch (tool) {
+                case 'line':
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    break;
+                case 'rect':
+                    ctx.rect(startX, startY, endX - startX, endY - startY);
+                    if (document.getElementById('fillToggle').checked) ctx.fill();
+                    ctx.stroke();
+                    break;
+                case 'circle':
+                    const radius = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+                    ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                    if (document.getElementById('fillToggle').checked) ctx.fill();
+                    ctx.stroke();
+                    break;
+                case 'triangle':
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.lineTo(startX * 2 - endX, endY);
+                    ctx.closePath();
+                    if (document.getElementById('fillToggle').checked) ctx.fill();
+                    ctx.stroke();
+                    break;
+            }
+        });
+    </script>
 </body>
+
 </html>
