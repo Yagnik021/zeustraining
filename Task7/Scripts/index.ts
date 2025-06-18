@@ -33,7 +33,7 @@ class ManagerClass {
         ];
 
         for (let i = 0; i < count; i++) {
-            const color = lightColors[i % lightColors.length]; // cycle through colors
+            const color = lightColors[i % lightColors.length];
             const outer = new OuterDiv(color);
             this.outerDivs.push(outer);
             this.element.appendChild(outer.element);
@@ -46,7 +46,6 @@ class ManagerClass {
             new ScreenSizeWatcher(draggable3);
         }
     }
-
 }
 
 
@@ -194,6 +193,7 @@ class ScreenSizeWatcher {
         }
 
         childEl.style.left = `${Math.max(0, newLeft)}px`;
+        
         childEl.style.top = `${Math.max(0, newTop)}px`;
     };
 }
