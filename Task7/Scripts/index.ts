@@ -39,11 +39,10 @@ class ManagerClass {
             this.element.appendChild(outer.element);
 
             const draggable = new innerDiv(outer, "lightBlue", "0px", "0px");
-            const draggable2 = new innerDiv(outer, "lime", "100px", "0px");
-            const draggable3 = new innerDiv(outer, "cyan", "0px", "100px");
+            // const draggable2 = new innerDiv(outer, "lime", "100px", "0px");
+            // const draggable3 = new innerDiv(outer, "cyan", "0px", "100px");
             new ScreenSizeWatcher(draggable);
-            new ScreenSizeWatcher(draggable2);
-            new ScreenSizeWatcher(draggable3);
+            // new ScreenSizeWatcher(draggable2);
         }
     }
 }
@@ -198,4 +197,4 @@ class ScreenSizeWatcher {
     };
 }
 
-const manager = new ManagerClass(12);
+const manager = new ManagerClass(1);
