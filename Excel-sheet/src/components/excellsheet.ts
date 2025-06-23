@@ -22,7 +22,7 @@ class ExcelSheet {
     private commandManager: CommandManager;
     private selectedRow: number | null = null;
     private selectedCol: number | null = null;
-    private selectedArea : { startRow: number, startCol: number, endRow: number, endCol: number } = { startRow: 0, startCol: 0, endRow: 0, endCol: 0 };
+    private selectedArea: { startRow: number, startCol: number, endRow: number, endCol: number } = { startRow: 0, startCol: 0, endRow: 0, endCol: 0 };
 
     /**
      * Constructor for ExcelSheet.
@@ -192,22 +192,22 @@ class ExcelSheet {
                 const x = e.clientX - rect.left + this.container.scrollLeft - rowHeaderWidth;
                 const y = e.clientY - rect.top + this.container.scrollTop - colHeaderHeight;
 
-                if(x<0 && y>0){
+                if (x < 0 && y > 0) {
                     const row = this.getRowIndexFromY(y);
                     this.selectedRow = row;
                     this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-                    console.log(row , " : slected row");
-                    
-                    return; 
+                    console.log(row, " : slected row");
+
+                    return;
                 }
 
-                if(y<0 && x>0){
+                if (y < 0 && x > 0) {
                     const col = this.getColIndexFromX(x);
                     this.selectedCol = col;
                     this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-                    console.log(col , " : slected col");
-                    
-                    return; 
+                    console.log(col, " : slected col");
+
+                    return;
 
                 }
 
@@ -330,7 +330,7 @@ class ExcelSheet {
         const input = document.createElement("input");
         input.type = "text";
         input.value = cell.text.toString();
-        input.style.position = "absolute";
+        input.style.position = "fixed";
         input.style.left = `${x - this.container.scrollLeft + rowHeaderWidth + this.canvas.offsetLeft}px`;
         input.style.top = `${y - this.container.scrollTop + colHeaderHeight + this.canvas.offsetTop}px`;
 
@@ -410,8 +410,7 @@ class ExcelSheet {
 
         this.ctx.fillStyle = "#f0f0f0";
 
-        this.ctx.fillRect(0, rowHeaderWidth, colHeaderHeight, this.canvas.width - rowHeaderWidth);
-        this.ctx.fillRect(0, colHeaderHeight, rowHeaderWidth, this.canvas.height - colHeaderHeight);
+        this.ctx.fillRect(rowHeaderWidth, 0, this.canvas.width - rowHeaderWidth, colHeaderHeight);
 
         this.ctx.fillStyle = "black";
         for (let col = startCol; col <= endCol; col++) {
@@ -460,7 +459,7 @@ class ExcelSheet {
         // updateInput();
     }
 
-   
+
     renderText(value: string, x: number, y: number, width: number, height: number) {
         this.ctx.font = "14px Arial";
         const padding = 4;
