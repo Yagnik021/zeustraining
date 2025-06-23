@@ -23,7 +23,9 @@ class ExcelSheet {
     private selectedRow: number | null = null;
     private selectedCol: number | null = null;
     private selectedArea: { startRow: number, startCol: number, endRow: number, endCol: number } = { startRow: 0, startCol: 0, endRow: 0, endCol: 0 };
-
+    private ctx: CanvasRenderingContext2D;
+    private canvas: HTMLCanvasElement;
+    public container: HTMLElement
     /**
      * Constructor for ExcelSheet.
      * @param ctx The canvas context for rendering
@@ -34,7 +36,10 @@ class ExcelSheet {
      * It will also attach a event listener to the container to open a text input when a cell is double clicked.
      * Finally, it will set the selected cell to the top left corner of the sheet, and draw an initial frame.
      */
-    constructor(private ctx: CanvasRenderingContext2D, private canvas: HTMLCanvasElement, public container: HTMLElement) {
+    constructor(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, container: HTMLElement) {
+        this.ctx = ctx;
+        this.canvas = canvas;
+        this.container = container;
         this.generateSheet(jsonData.length + 1, 500, 30, 80, 0.5, "black");
         this.attachEventListners();
         this.selectedCell = { row: 0, col: 0 };
@@ -68,11 +73,16 @@ class ExcelSheet {
         virtualArea.style.width = `${this.sheetWidth + 80}px`;
         virtualArea.style.height = `${this.sheetHeight + 80}px`;
 
-        // Canvas stays fixed at container size
-        this.canvas.width = this.container.clientWidth - 40;
-        this.canvas.height = this.container.clientHeight - 40;
-        this.canvas.style.width = this.canvas.width + "px";
-        this.canvas.style.height = this.canvas.height + "px";
+        const dpr = window.devicePixelRatio || 1;
+
+        this.canvas.width = (this.container.clientWidth - 40) * dpr;
+        this.canvas.height = (this.container.clientHeight - 40) * dpr;
+
+        this.canvas.style.width = (this.container.clientWidth - 40) + "px";
+        this.canvas.style.height = (this.container.clientHeight - 40) + "px";
+
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0); 
+        this.ctx.scale(dpr, dpr);
 
 
         this.ctx.clearRect(0, 0, this.sheetWidth, this.sheetHeight);
@@ -89,7 +99,6 @@ class ExcelSheet {
 
             for (let col = 0; col < numberOfColumns; col++) {
                 let cell;
-                let attribute = "";
                 if (row === 0) {
                     if (col <= headers.length - 1) {
                         cell = new Cell(headers[col], row, col);
@@ -171,10 +180,10 @@ class ExcelSheet {
             const withinRowResizeZone = Math.abs(y - rowBottomEdge) < 5;
 
             if (!this.isResizing) {
-                if (withinColResizeZone) {
+                if (withinColResizeZone && y < 0) {
                     this.container.style.cursor = "ew-resize";
                     this.resizeTarget = { type: "column", index: hoverCol };
-                } else if (withinRowResizeZone) {
+                } else if (withinRowResizeZone && x < 0) {
                     this.container.style.cursor = "ns-resize";
                     this.resizeTarget = { type: "row", index: hoverRow };
                 } else {
@@ -195,18 +204,18 @@ class ExcelSheet {
                 if (x < 0 && y > 0) {
                     const row = this.getRowIndexFromY(y);
                     this.selectedRow = row;
+                    this.selectedCol = null;
+                    this.selectedCell = null;
                     this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-                    console.log(row, " : slected row");
-
                     return;
                 }
 
                 if (y < 0 && x > 0) {
                     const col = this.getColIndexFromX(x);
+                    this.selectedRow = null;
                     this.selectedCol = col;
+                    this.selectedCell = null;
                     this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-                    console.log(col, " : slected col");
-
                     return;
 
                 }
@@ -216,6 +225,8 @@ class ExcelSheet {
 
                 if (row >= 0 && col >= 0 && row < this.rows.length && col < this.columns.length) {
                     this.selectedCell = { row, col };
+                    this.selectedRow = null;
+                    this.selectedCol = null;
                     this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
                 }
                 return;
@@ -255,6 +266,8 @@ class ExcelSheet {
         document.addEventListener("keydown", (e: KeyboardEvent) => {
             if (!this.selectedCell) {
                 this.selectedCell = { row: 0, col: 0 };
+                this.selectedCol = null;
+                this.selectedRow = null;
             };
 
             const { row, col } = this.selectedCell;
@@ -359,9 +372,9 @@ class ExcelSheet {
 
 
     public redrawVisible(scrollTop: number, scrollLeft: number): void {
+
         const viewportWidth = this.canvas.width;
         const viewportHeight = this.canvas.height;
-
 
         const startRow = this.getRowIndexFromY(scrollTop);
         const endRow = this.getRowIndexFromY(scrollTop + viewportHeight);
@@ -377,35 +390,116 @@ class ExcelSheet {
         this.ctx.fillStyle = "black";
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // === Clip to scrollable canvas area
         this.ctx.save();
         this.ctx.beginPath();
         this.ctx.rect(rowHeaderWidth, colHeaderHeight, this.canvas.width - rowHeaderWidth, this.canvas.height - colHeaderHeight);
         this.ctx.clip();
 
+        // === Draw cell text only
+        let y = this.rows.slice(0, startRow).reduce((sum, r) => sum + r.height, 0) - scrollTop;
+
         for (let row = startRow; row <= endRow; row++) {
+            const rowHeight = this.rows[row].height;
+            let x = this.columns.slice(0, startCol).reduce((sum, c) => sum + c.width, 0) - scrollLeft;
+
             for (let col = startCol; col <= endCol; col++) {
+                const colWidth = this.columns[col].width;
                 const cell = this.cells[row]?.[col];
                 if (!cell) continue;
 
-                const x = this.columns.slice(0, col).reduce((sum, c) => sum + c.width, 0) - scrollLeft;
-                const y = this.rows.slice(0, row).reduce((sum, r) => sum + r.height, 0) - scrollTop;
+                const cellX = x + rowHeaderWidth;
+                const cellY = y + colHeaderHeight;
 
-                this.ctx.strokeStyle = "#ccc";
-                this.ctx.strokeRect(x + rowHeaderWidth, y + colHeaderHeight, this.columns[col].width, this.rows[row].height);
+                if (this.selectedRow === row || this.selectedCol === col) {
+                    this.ctx.fillStyle = "#CAEAD8";
+                    this.ctx.fillRect(cellX, cellY, colWidth, rowHeight);
+                }
+
                 this.ctx.fillStyle = "black";
 
-                this.renderText(cell.text,
-                    x + rowHeaderWidth + this.columns[col].width / 2,
-                    y + colHeaderHeight + this.rows[row].height / 2, this.columns[col].width, this.rows[row].height);
+                // Draw cell text
+                this.renderText(
+                    cell.text,
+                    cellX + colWidth / 2,
+                    cellY + rowHeight / 2,
+                    colWidth,
+                    rowHeight
+                );
 
-                if (this.selectedCell && this.selectedCell.row === row && this.selectedCell.col === col) {
-                    this.ctx.strokeStyle = "#007BFF";
+                if (this.selectedCell?.row === row && this.selectedCell.col === col) {
+                    this.ctx.strokeStyle = "#137E43";
                     this.ctx.lineWidth = 2;
-                    this.ctx.strokeRect(x + rowHeaderWidth, y + colHeaderHeight, this.columns[col].width - 2, this.rows[row].height - 2);
+                    this.ctx.strokeRect(cellX, cellY, colWidth, rowHeight);
                     this.ctx.lineWidth = 1;
                 }
+
+                x += colWidth;
             }
+            y += rowHeight;
         }
+
+        // === Draw grid lines (after text)
+        this.ctx.beginPath();
+
+        // Horizontal lines
+        let currentY = this.rows.slice(0, startRow).reduce((sum, r) => sum + r.height, 0) - scrollTop + colHeaderHeight;
+        for (let row = startRow; row <= endRow + 1; row++) {
+            const rowHeight = this.rows[row]?.height || 0;
+
+            if (this.selectedRow === row || this.selectedRow === row - 1) {
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "#137E43";
+                this.ctx.lineWidth = 2;
+
+                this.ctx.moveTo(rowHeaderWidth, currentY);
+                this.ctx.lineTo(this.canvas.width, currentY);
+                this.ctx.stroke();
+
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = "#ccc";
+            } else {
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "#ccc";
+
+                this.ctx.moveTo(rowHeaderWidth, currentY);
+                this.ctx.lineTo(this.canvas.width, currentY);
+                this.ctx.stroke();
+            }
+
+            currentY += rowHeight;
+        }
+
+        // Vertical lines
+        let currentX = this.columns.slice(0, startCol).reduce((sum, c) => sum + c.width, 0) - scrollLeft + rowHeaderWidth;
+        for (let col = startCol; col <= endCol + 1; col++) {
+            const colWidth = this.columns[col]?.width || 0;
+
+            if (this.selectedCol === col || this.selectedCol === col - 1) {
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "#137E43";
+                this.ctx.lineWidth = 2;
+                this.ctx.moveTo(currentX, colHeaderHeight);
+                this.ctx.lineTo(currentX - 1, this.canvas.height);
+                this.ctx.stroke();
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = "#ccc";
+            } else {
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "#ccc";
+                this.ctx.moveTo(currentX, colHeaderHeight);
+                this.ctx.lineTo(currentX, this.canvas.height);
+                this.ctx.stroke();
+            }
+
+            currentX += colWidth;
+        }
+
+
+        this.ctx.strokeStyle = "#ccc";
+        this.ctx.stroke();
+
         this.ctx.restore();
 
         this.ctx.fillStyle = "#f0f0f0";
@@ -416,16 +510,40 @@ class ExcelSheet {
         for (let col = startCol; col <= endCol; col++) {
             const x = rowHeaderWidth + this.columns.slice(0, col).reduce((sum, c) => sum + c.width, 0) - scrollLeft;
             const width = this.columns[col].width;
+
+            // === Decide background color
             if (this.selectedCell?.col === col) {
-                this.ctx.fillStyle = "#d0e4ff";
-                this.ctx.fillRect(x, 0, width, colHeaderHeight);
+                this.ctx.fillStyle = "#CAEAD8";
+            } else if (this.selectedCol === col) {
+                this.ctx.fillStyle = "#137E43";
+            } else {
+                this.ctx.fillStyle = "#f0f0f0";
             }
 
-            this.ctx.fillStyle = "#f0f0f0";
-            this.ctx.strokeStyle = "#ccc";
+            this.ctx.fillRect(x, 0, width, colHeaderHeight);
+
+            // === Draw border (highlight if fully selected)
+            if (this.selectedCol === col) {
+                this.ctx.strokeStyle = "#137E43";
+                this.ctx.lineWidth = 2;
+            } else {
+                this.ctx.strokeStyle = "#ccc";
+                this.ctx.lineWidth = 1;
+            }
+
             this.ctx.strokeRect(x, 0, width, colHeaderHeight);
-            this.ctx.fillStyle = "black";
-            this.ctx.strokeStyle = "black";
+
+            // === Draw text
+            this.ctx.fillStyle = (this.selectedCol === col) ? "white" : "black";
+
+            if (this.selectedCol === col) {
+                this.ctx.strokeStyle = "white";
+            } else {
+                this.ctx.strokeStyle = "#ccc";
+                this.ctx.lineWidth = 1;
+            }
+            this.ctx.textAlign = "center";
+            this.ctx.textBaseline = "middle";
             this.ctx.fillText(
                 this.columns[col].label,
                 x + width / 2,
@@ -433,28 +551,50 @@ class ExcelSheet {
             );
         }
 
+
         this.ctx.fillStyle = "#f0f0f0";
         this.ctx.fillRect(0, colHeaderHeight, rowHeaderWidth, this.canvas.height - colHeaderHeight);
+
         for (let row = startRow; row <= endRow; row++) {
             const y = colHeaderHeight + this.rows.slice(0, row).reduce((sum, r) => sum + r.height, 0) - scrollTop;
             const height = this.rows[row].height;
 
             if (this.selectedCell?.row === row) {
-                this.ctx.fillStyle = "#d0e4ff";
-                this.ctx.fillRect(0, y, rowHeaderWidth, height);
+                this.ctx.fillStyle = "#CAEAD8";
+            } else if (this.selectedRow === row) {
+                this.ctx.fillStyle = "#137E43";
+            } else {
+                this.ctx.fillStyle = "#f0f0f0";
             }
 
-            this.ctx.fillStyle = "#f0f0f0";
-            this.ctx.strokeStyle = "#ccc";
+            this.ctx.fillRect(0, y, rowHeaderWidth, height);
+
+            if (this.selectedRow === row) {
+                this.ctx.strokeStyle = "#137E43";
+                this.ctx.lineWidth = 2;
+            } else {
+                this.ctx.strokeStyle = "#ccc";
+                this.ctx.lineWidth = 1;
+            }
+
             this.ctx.strokeRect(0, y, rowHeaderWidth, height);
-            this.ctx.fillStyle = "black";
-            this.ctx.strokeStyle = "black";
+
+            this.ctx.fillStyle = (this.selectedRow === row) ? "white" : "black";
+            this.ctx.textAlign = "center";
+            this.ctx.textBaseline = "middle";
+            if (this.selectedRow === row) {
+                this.ctx.strokeStyle = "white";
+            } else {
+                this.ctx.strokeStyle = "#ccc";
+                this.ctx.lineWidth = 1;
+            }
             this.ctx.fillText(
                 (row + 1).toString(),
                 rowHeaderWidth / 2,
                 y + height / 2
             );
         }
+
 
         // updateInput();
     }
