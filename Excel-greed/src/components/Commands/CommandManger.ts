@@ -1,4 +1,4 @@
-import { Command } from "./Commands";
+import type { Command } from "./Command";
 
 export class CommandManager {
     private undoStack: Command[] = [];

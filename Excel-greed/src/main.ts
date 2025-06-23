@@ -1,4 +1,4 @@
-import { ExcelSheet } from "./excellsheet";
+import { ExcelSheet } from "./components/excellsheet";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const container = document.querySelector(".container") as HTMLElement;

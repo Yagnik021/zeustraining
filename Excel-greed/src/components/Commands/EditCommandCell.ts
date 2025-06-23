@@ -1,4 +1,4 @@
-import { Command } from "./Commands";
+import type { Command } from './Command';
 import { ExcelSheet } from "../excellsheet";
 
 export class EditCellCommand implements Command {
