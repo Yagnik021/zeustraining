@@ -54,7 +54,28 @@ body .wrapper .container .virtual-canvas-area {
 body .wrapper .container canvas {
   display: block;
   position: fixed;
-  top: 120px;
-  left: 20px;
+  top: 90px;
+  left: 0px;
   pointer-events: none;
+}
+body .wrapper .footer {
+  padding: 5px 10px;
+  width: 100%;
+  background-color: #F5F5F5;
+  color: rgb(96, 94, 92);
+  display: flex;
+  flex-direction: row;
+  justify-content: end;
+  gap: 8px;
+}
+body .wrapper .footer .counter {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+}
+body .wrapper .footer .counter .counter-item {
+  cursor: pointer;
+}
+body .wrapper .footer .counter .counter-label {
+  font-weight: bold;
 }/*# sourceMappingURL=styles.css.map */

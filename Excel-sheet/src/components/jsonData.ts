@@ -1,4 +1,4 @@
-const totalRecords = 1000;
+const totalRecords = 15000;
 const jsonData : any[] = [];
 
 const headers = ["id", "firstName", "lastName", "age", "salary"];

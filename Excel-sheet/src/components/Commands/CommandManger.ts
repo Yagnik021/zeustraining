@@ -12,7 +12,7 @@ export class CommandManager {
 
     undo() {
         const command = this.undoStack.pop();
-        console.log(command , " : Command Undo");
+        console.log("command", command);
         
         if (command) {
             command.undo();
