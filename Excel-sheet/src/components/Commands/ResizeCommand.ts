@@ -1,5 +1,5 @@
 import type { Command } from './Command';
-import type { ExcelSheet } from "../excellsheet";
+import type { ExcelSheet } from "../Excellsheet";
 
 export class ResizeCommand implements Command {
     private previousSize: number;

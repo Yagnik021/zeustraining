@@ -4,9 +4,7 @@ export class CommandManager {
     private undoStack: Command[] = [];
     private redoStack: Command[] = [];
 
-    executeCommand(command: Command) {
-        console.log("Change this floa");
-        
+    executeCommand(command: Command) {        
         command.execute();
         this.undoStack.push(command);
         this.redoStack = [];
@@ -19,25 +17,18 @@ export class CommandManager {
             command.undo();
             this.redoStack.push(command);
         }
-        console.log(this.redoStack);
-
     }
 
     redo() {
         const command = this.redoStack.pop();
-        console.log(command);
-
-        console.log(this.redoStack);
         if (command) {
             command.execute();
             this.undoStack.push(command);
         }
-        console.log(this.undoStack);
-
     }
 
-    clear() {
-        this.undoStack = [];
-        this.redoStack = [];
-    }
+    // clear() {
+    //     this.undoStack = [];
+    //     this.redoStack = [];
+    // }
 }
