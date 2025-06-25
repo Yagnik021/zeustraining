@@ -6,9 +6,37 @@ import { jsonData, headers } from "./jsonData";
 import { EditCellCommand } from "./Commands/EditCommandCell";
 import { ResizeCommand } from "./Commands/ResizeCommand";
 
-const rowHeaderWidth = 50 as number;
+
+type DataRow = {
+    id: number;
+    firstName: string;
+    lastName: string;
+    age: number;
+    salary: number;
+};
+
+let rowHeaderWidth = 50 as number;
 const colHeaderHeight = 30 as number;
 let dpr = 1;
+
+
+const rowMap = new Map<number, DataRow[]>();
+
+jsonData.forEach((cell) => {
+    if (!rowMap.has(cell.row)) {
+        rowMap.set(cell.row, []);
+    }
+    rowMap.get(cell.row)!.push(cell);
+});
+
+const colIndexToField: Record<number, keyof DataRow> = {
+    0: "id",
+    1: "firstName",
+    2: "lastName",
+    3: "age",
+    4: "salary"
+};
+
 
 class ExcelSheet {
 
@@ -20,7 +48,7 @@ class ExcelSheet {
     private isResizing: boolean = false;
     private resizeTarget: { type: "column" | "row", index: number } | null = null;
     private resizeStartPos: { x: number, y: number } = { x: 0, y: 0 };
-    private selectedCell: { row: number; col: number } | null = null;
+    private _selectedCell: { row: number; col: number } | null = null;
     private commandManager: CommandManager;
     private selectedRow: number | null = null;
     private selectedCol: number | null = null;
@@ -29,6 +57,9 @@ class ExcelSheet {
     private ctx: CanvasRenderingContext2D;
     private canvas: HTMLCanvasElement;
     public container: HTMLElement;
+    public formularBarInput: HTMLInputElement;
+    public suppressCommand: boolean = false;
+
     /**
      * Constructor for ExcelSheet.
      * @param ctx The canvas context for rendering
@@ -39,10 +70,11 @@ class ExcelSheet {
      * It will also attach a event listener to the container to open a text input when a cell is double clicked.
      * Finally, it will set the selected cell to the top left corner of the sheet, and draw an initial frame.
      */
-    constructor(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, container: HTMLElement) {
+    constructor(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, container: HTMLElement, formularBarInput: HTMLInputElement) {
         this.ctx = ctx;
         this.canvas = canvas;
         this.container = container;
+        this.formularBarInput = formularBarInput;
         this.generateSheet(jsonData.length + 1, 500, 30, 80, 1, "black");
         this.attachEventListners();
         this.selectedCell = { row: 0, col: 0 };
@@ -81,9 +113,10 @@ class ExcelSheet {
         this.canvas.width = (this.container.clientWidth) * dpr;
         this.canvas.height = (this.container.clientHeight) * dpr;
 
-        this.canvas.style.width = (this.container.clientWidth) + "px";
-        this.canvas.style.height = (this.container.clientHeight) + "px";
+        this.canvas.style.width = (this.container.clientWidth) * dpr + "px";
+        this.canvas.style.height = (this.container.clientHeight) * dpr + "px";
 
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.scale(dpr, dpr);
 
 
@@ -127,6 +160,29 @@ class ExcelSheet {
             this.cells.push(rowCells);
         }
 
+    }
+
+    get selectedCell() {
+        return this._selectedCell;
+    }
+
+    set selectedCell(cell: { row: number; col: number } | null) {
+        this._selectedCell = cell;
+
+        // === Side effect: Update the address bar
+        const addressDiv = document.querySelector(".address") as HTMLDivElement;
+
+        if (addressDiv) {
+            if (cell) {
+                addressDiv.innerHTML = this.columns[cell.col].label + (cell.row + 1);
+                this.formularBarInput.value = this.getCell(cell.row, cell.col)?.text || "";
+            } else {
+                addressDiv.innerHTML = "";
+                this.formularBarInput.value = "";
+            }
+        }
+
+        this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
     }
 
     private getColIndexFromX(x: number): number {
@@ -181,6 +237,7 @@ class ExcelSheet {
                 this.selectedArea = { endRow: hoverRow, endCol: hoverCol, startRow: this.selectedArea.startRow, startCol: this.selectedArea.startCol };
                 if (this.selectedArea.startRow === this.selectedArea.endRow && this.selectedArea.startCol === this.selectedArea.endCol) {
                     if (this.selectedArea.startRow === null || this.selectedArea.startCol === null) return;
+
                     this.selectedCell = { row: this.selectedArea.startRow, col: this.selectedArea.startCol };
                 } else {
                     this.selectedCell = null;
@@ -194,6 +251,12 @@ class ExcelSheet {
 
             const withinColResizeZone = Math.abs(x - colRightEdge) < 5;
             const withinRowResizeZone = Math.abs(y - rowBottomEdge) < 5;
+
+            if (e.clientX - rect.left < 0 || e.clientY - rect.top < 0) {
+                this.container.style.cursor = "default";
+                this.resizeTarget = null;
+                return;
+            };
 
             if (!this.isResizing) {
                 if (withinColResizeZone && e.clientY - rect.top <= colHeaderHeight) {
@@ -335,8 +398,6 @@ class ExcelSheet {
 
             this.isResizing = false;
             this.resizeTarget = null;
-            this.isResizing = false;
-            this.resizeTarget = null;
         });
 
         document.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -392,19 +453,47 @@ class ExcelSheet {
         });
 
         window.addEventListener("resize", () => {
-            const currentDPR = window.devicePixelRatio;
+            const currentDPR = window.devicePixelRatio > 1 ? window.devicePixelRatio : 1;
             if (currentDPR !== dpr) {
                 dpr = currentDPR;
             }
 
-            this.canvas.width = this.container.clientWidth - 40 * currentDPR;
-            this.canvas.height = this.container.clientHeight - 40 * currentDPR;
+            this.canvas.width = this.container.clientWidth * currentDPR;
+            this.canvas.height = this.container.clientHeight * currentDPR;
             this.canvas.style.width = this.canvas.width + "px";
             this.canvas.style.height = this.canvas.height + "px";
             this.ctx.scale(currentDPR, currentDPR);
 
             this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
 
+        })
+
+        this.formularBarInput.addEventListener("input", () => {
+
+            if (this.suppressCommand) return;
+
+            if (this.selectedCell) {
+
+                const row = this.selectedCell.row;
+                const col = this.selectedCell.col; 
+                const newValue = this.formularBarInput.value;
+                const currentValue = this.cells[row][col].text;
+
+                // Only push command if value actually changed
+                if (newValue === currentValue) return;
+
+                const cmd = new EditCellCommand(
+                    this,
+                    row,
+                    col,
+                    newValue,
+                    (r, c) => this.getCell(r, c),
+                    () => this.redrawVisible(this.container.scrollTop, this.container.scrollLeft)
+                );
+                console.log("New push !!");
+
+                this.commandManager.executeCommand(cmd);
+            }
         })
     }
 
@@ -438,9 +527,15 @@ class ExcelSheet {
         virtualArea.appendChild(input);
         input.focus();
 
+        input.addEventListener("input", () => {
+
+            this.formularBarInput.value = input.value;
+        });
+
         input.addEventListener("blur", () => {
             let newValue = input.value;
             const cmd = new EditCellCommand(
+                this,
                 row,
                 col,
                 newValue,
@@ -449,7 +544,7 @@ class ExcelSheet {
             );
             this.commandManager.executeCommand(cmd);
             virtualArea.removeChild(input);
-            this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
+            // this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
         });
 
         input.addEventListener("keydown", (e) => {
@@ -506,6 +601,23 @@ class ExcelSheet {
 
     }
 
+
+    updateCell(row: number, col: number, newText: string): void {
+        const rowData = rowMap.get(row) as any;
+        const field = colIndexToField[col] as any;
+
+        if (rowData && field) {
+            // Attempt type coercion based on field type
+            if (field === "age" || field === "salary" || field === "id") {
+                rowData[field] = Number(newText);
+            } else {
+                rowData[field] = newText;
+            }
+
+            // Also update canvas cell
+            this.getCell(row, col)?.updateText(newText);
+        }
+    }
 
     renderText(value: string, x: number, y: number, width: number, height: number) {
         this.ctx.font = "14px Arial";
@@ -731,6 +843,13 @@ class ExcelSheet {
     }
 
     drawRowHeaders(startRow: number, endRow: number, scrollTop: number) {
+        const rowIndexStr = (endRow + 1).toString();
+        this.ctx.font = "14px Arial";
+        const textWidth = this.ctx.measureText(rowIndexStr).width;
+        const padding = 14;
+        rowHeaderWidth = Math.ceil(textWidth + padding);
+
+        // === Draw row header background
         this.ctx.fillStyle = "#f0f0f0";
         this.ctx.fillRect(0, colHeaderHeight, rowHeaderWidth, this.canvas.height - colHeaderHeight);
 
@@ -738,6 +857,7 @@ class ExcelSheet {
             const y = colHeaderHeight + this.rows.slice(0, row).reduce((sum, r) => sum + r.height, 0) - scrollTop;
             const height = this.rows[row].height;
 
+            // Background color
             if (this.selectedCell?.row === row) {
                 this.ctx.fillStyle = "#CAEAD8";
             } else if (this.selectedRow === row) {
@@ -746,8 +866,9 @@ class ExcelSheet {
                 this.ctx.fillStyle = "#f0f0f0";
             }
 
-            this.ctx.fillRect(0 + 0.5, y + 0.5, rowHeaderWidth, height);
+            this.ctx.fillRect(0.5, y + 0.5, rowHeaderWidth, height);
 
+            // Border
             if (this.selectedRow === row) {
                 this.ctx.strokeStyle = "#137E43";
                 this.ctx.lineWidth = 2;
@@ -756,24 +877,19 @@ class ExcelSheet {
                 this.ctx.lineWidth = 1;
             }
 
-            this.ctx.strokeRect(0 + 0.5, y + 0.5, rowHeaderWidth, height);
+            this.ctx.strokeRect(0.5, y + 0.5, rowHeaderWidth, height);
 
+            // Row label text
             this.ctx.fillStyle = (this.selectedRow === row) ? "white" : "black";
             this.ctx.textAlign = "center";
             this.ctx.textBaseline = "middle";
-            if (this.selectedRow === row) {
-                this.ctx.strokeStyle = "white";
-            } else {
-                this.ctx.strokeStyle = "#ccc";
-                this.ctx.lineWidth = 1;
-            }
+
             this.ctx.fillText(
                 (row + 1).toString(),
                 rowHeaderWidth / 2,
                 y + height / 2
             );
         }
-
     }
 
     drawColumnHeaders(startCol: number, endCol: number, scrollLeft: number) {
@@ -832,10 +948,10 @@ class ExcelSheet {
 
             // if (this.selectedCell?.row  && this.selectedCell.col) {
             //     console.log("this.selectedCell", this.selectedCell);
-                
+
             //     const cell = this.cells[this.selectedCell.row]?.[this.selectedCell.col];
             //     console.log(cell);
-                
+
             //     this.renderAreaStatus({
             //         count: 1,
             //         sum: isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
@@ -872,15 +988,6 @@ class ExcelSheet {
         const max = numericCount > 0 ? Math.max(...numericValues) : null;
         const avg = numericCount > 0 ? sum / numericCount : null;
 
-        console.log("Selected Area Stats:");
-        console.log("Count:", count);
-        console.log("Sum:", sum);
-        console.log("Min:", min);
-        console.log("Max:", max);
-        console.log("Average:", avg);
-
-        // Return values if needed
-        // return { count, sum, min, max, avg };
         this.renderAreaStatus({ count, sum, min, max, avg });
     }
 
@@ -891,9 +998,6 @@ class ExcelSheet {
         max: number | null;
         avg: number | null;
     }): void {
-
-        console.log("stats", stats);
-        
 
         const updateElement = (selector: string, value: number | null) => {
             const container = document.querySelector(selector) as HTMLElement;

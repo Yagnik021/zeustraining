@@ -15,7 +15,7 @@ function getRandomAge(): number {
 }
 
 function getRandomSalary(): number {
-    return Math.floor(Math.random() * 900000) + 100000; // salary 100K – 1M
+    return Math.floor(Math.random() * 90000) + 10000; 
 }
 
 for (let i = 1; i <= totalRecords; i++) {
