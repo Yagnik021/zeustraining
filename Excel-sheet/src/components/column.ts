@@ -14,7 +14,11 @@ class Column {
         this.label = Column.generateLabel(index);
     }
 
-
+    /**
+     * To generate the label of the column
+     * @param index Column index
+     * @returns Label of the column
+     */
     private static generateLabel(index: number): string {
         let label = "";
         let i = index;

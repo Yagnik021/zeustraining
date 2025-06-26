@@ -22,6 +22,10 @@ class Cell {
         this.colIndex = colIndex;
     }
 
+    /**
+     * This method updates the text content of the cell.
+     * @param newText New text to update the cell with.
+     */
     updateText(newText?: string | null) {
         if (newText) {
             this.text = newText;
