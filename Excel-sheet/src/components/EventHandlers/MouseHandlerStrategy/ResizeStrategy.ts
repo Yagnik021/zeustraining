@@ -1,5 +1,5 @@
-import { ResizeCommand } from "../Commands/ResizeCommand";
-import type { ExcelSheet } from "../Excellsheet";
+import { ResizeCommand } from "../../Commands/ResizeCommand";
+import type { ExcelSheet } from "../../Excellsheet";
 import type { MouseStrategy } from "./MouseStrategy";
 
 class ResizeStrategy implements MouseStrategy {

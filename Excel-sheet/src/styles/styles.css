@@ -70,6 +70,7 @@ body .wrapper .container canvas {
   top: 80px;
   left: 0px;
   pointer-events: none;
+  z-index: 2;
 }
 body .wrapper .footer {
   padding: 5px 10px;
@@ -81,6 +82,7 @@ body .wrapper .footer {
   justify-content: end;
   gap: 8px;
   border-top: #dddbdb 1px solid;
+  z-index: 5;
 }
 body .wrapper .footer .counter {
   display: flex;

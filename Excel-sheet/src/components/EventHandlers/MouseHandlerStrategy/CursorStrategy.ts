@@ -1,4 +1,4 @@
-import type { ExcelSheet } from "../Excellsheet";
+import type { ExcelSheet } from "../../Excellsheet";
 
 export class CursorStrategy {
     constructor(private sheet: ExcelSheet) { }

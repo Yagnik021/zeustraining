@@ -1,8 +1,8 @@
 import type { ExcelSheet } from "../Excellsheet";
-import type { MouseStrategy } from "./MouseStrategy";
-import { ResizeStrategy } from "./ResizeStrategy";
-import { SelectionStrategy } from "./SelectionStrategy";
-import { CursorStrategy } from "./CursorStrategy";
+import type { MouseStrategy } from "./MouseHandlerStrategy/MouseStrategy";
+import { ResizeStrategy } from "./MouseHandlerStrategy/ResizeStrategy";
+import { SelectionStrategy } from "./MouseHandlerStrategy/SelectionStrategy";
+import { CursorStrategy } from "./MouseHandlerStrategy/CursorStrategy";
 
 export class MouseHandler {
     private activeStrategy: MouseStrategy | null = null;

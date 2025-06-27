@@ -14,8 +14,7 @@ export class ResizeCommand implements Command {
     ) {
         this.newSize = newSize;
         this.previousSize = oldValue;
-        console.log("previousSize", this.previousSize);
-        
+       
     }
 
     execute(): void {

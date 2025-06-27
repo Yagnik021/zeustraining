@@ -203,7 +203,7 @@ class ExcelSheet {
      */
     set selectedCell(cell: { row: number; col: number } | null) {
         this._selectedCell = cell;
-
+        
         // === Side effect: Update the address bar
         const addressDiv = document.querySelector(".address") as HTMLDivElement;
 
@@ -933,23 +933,17 @@ class ExcelSheet {
 
         const { startRow, endRow, startCol, endCol } = this.selectedArea;
         if (startRow === null || endRow === null || startCol === null || endCol === null) {
+            if (this.selectedCell?.row  && this.selectedCell.col) {
+                const cell = this.cells[this.selectedCell.row]?.[this.selectedCell.col];
 
-            // if (this.selectedCell?.row  && this.selectedCell.col) {
-            //     console.log("this.selectedCell", this.selectedCell);
-
-            //     const cell = this.cells[this.selectedCell.row]?.[this.selectedCell.col];
-            //     console.log(cell);
-
-            //     this.renderAreaStatus({
-            //         count: 1,
-            //         sum: isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
-            //         min: isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
-            //         max: isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
-            //         avg: isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null
-            //     });
-            // }
-
-            this.renderAreaStatus({ count: 0, sum: null, min: null, max: null, avg: null });
+                this.renderAreaStatus({
+                    count: 1,
+                    sum: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
+                    min: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
+                    max: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
+                    avg: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null
+                });
+            }
             return;
         }
         let numericValues: number[] = [];
@@ -989,7 +983,7 @@ class ExcelSheet {
         min: number | null;
         max: number | null;
         avg: number | null;
-    }): void {
+    }): void {   
 
         const updateElement = (selector: string, value: number | null) => {
             const container = document.querySelector(selector) as HTMLElement;

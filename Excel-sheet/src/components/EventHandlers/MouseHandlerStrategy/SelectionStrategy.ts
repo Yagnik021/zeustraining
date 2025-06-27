@@ -1,4 +1,4 @@
-import type { ExcelSheet } from "../Excellsheet";
+import type { ExcelSheet } from "../../Excellsheet";
 import type { MouseStrategy } from "./MouseStrategy";
 
 class SelectionStrategy implements MouseStrategy {
@@ -52,8 +52,7 @@ class SelectionStrategy implements MouseStrategy {
             return;
 
         }
-        
-        this.sheet.selectedCell = null;
+
         this.sheet.selectedRow = null;
         this.sheet.selectedCol = null;
         this.sheet.isSelectingArea = true;
@@ -61,10 +60,10 @@ class SelectionStrategy implements MouseStrategy {
         this.sheet.selectedArea = {
             startRow: this.startRow,
             startCol: this.startCol,
-            endRow: this.startRow,
-            endCol: this.startCol
+            endRow: null,
+            endCol: null
         };
-
+        this.sheet.selectedCell = { row: this.startRow, col: this.startCol };
         this.sheet.calculateAreaStatus();
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
@@ -91,7 +90,9 @@ class SelectionStrategy implements MouseStrategy {
         };
 
         if (this.startRow === currentRow && this.startCol === currentCol) {
+
             this.sheet.selectedCell = { row: this.startRow, col: this.startCol };
+            this.sheet.selectedArea = { startRow: null, startCol: null, endRow: null, endCol: null };
         } else {
             this.sheet.selectedCell = null;
         }
