@@ -42,8 +42,8 @@ export class CommandManager {
         }
     }
 
-    // clear() {
-    //     this.undoStack = [];
-    //     this.redoStack = [];
-    // }
+    clear() {
+        this.undoStack = [];
+        this.redoStack = [];
+    }
 }

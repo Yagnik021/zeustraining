@@ -70,7 +70,6 @@ body .wrapper .container canvas {
   top: 80px;
   left: 0px;
   pointer-events: none;
-  z-index: 2;
 }
 body .wrapper .footer {
   padding: 5px 10px;

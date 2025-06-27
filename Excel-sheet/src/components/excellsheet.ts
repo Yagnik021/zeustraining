@@ -6,6 +6,9 @@ import { jsonData, headers } from "./jsonData";
 import { EditCellCommand } from "./Commands/EditCommandCell";
 import { ResizeCommand } from "./Commands/ResizeCommand";
 import { MouseHandler } from "./EventHandlers/MouseHandler";
+import { copySelectionToClipboardBuffer } from "./Commands/CopyCommad";
+import { CutCommand } from "./Commands/CutCommand";
+import { PasteCommand } from "./Commands/PastCommand";
 
 
 type DataRow = {
@@ -84,6 +87,8 @@ class ExcelSheet {
     colHeaderHeight: number = 30;
     dpr: number = window.devicePixelRatio || 1;
     mouseHandler!: MouseHandler;
+    clipboardBuffer: string[][] | null = null;
+
     /**
      * Constructor for ExcelSheet.
      * @param ctx The canvas context for rendering
@@ -203,7 +208,7 @@ class ExcelSheet {
      */
     set selectedCell(cell: { row: number; col: number } | null) {
         this._selectedCell = cell;
-        
+
         // === Side effect: Update the address bar
         const addressDiv = document.querySelector(".address") as HTMLDivElement;
 
@@ -286,6 +291,21 @@ class ExcelSheet {
             } else if (e.ctrlKey && e.key === "y") {
                 this.commandManager.redo();
                 return;
+            } else if (e.ctrlKey && e.key === "c") {
+                copySelectionToClipboardBuffer(this);
+            }
+
+            if (e.ctrlKey && e.key === "x") {
+                const cmd = new CutCommand(this);
+                this.commandManager.executeCommand(cmd);
+            }
+
+            if (e.ctrlKey && e.key === "v") {
+                if (this.clipboardBuffer && this.selectedCell) {
+                    const { row, col } = this.selectedCell;
+                    const cmd = new PasteCommand(this, row, col, this.clipboardBuffer);
+                    this.commandManager.executeCommand(cmd);
+                }
             }
 
             if (!this.selectedCell) {
@@ -933,7 +953,7 @@ class ExcelSheet {
 
         const { startRow, endRow, startCol, endCol } = this.selectedArea;
         if (startRow === null || endRow === null || startCol === null || endCol === null) {
-            if (this.selectedCell?.row  && this.selectedCell.col) {
+            if (this.selectedCell?.row && this.selectedCell.col) {
                 const cell = this.cells[this.selectedCell.row]?.[this.selectedCell.col];
 
                 this.renderAreaStatus({
@@ -983,7 +1003,7 @@ class ExcelSheet {
         min: number | null;
         max: number | null;
         avg: number | null;
-    }): void {   
+    }): void {
 
         const updateElement = (selector: string, value: number | null) => {
             const container = document.querySelector(selector) as HTMLElement;
