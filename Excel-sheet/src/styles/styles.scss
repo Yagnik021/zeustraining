@@ -24,9 +24,27 @@ body {
       min-height: 40px;
       background-color: #F5F5F5;
       color: black;
-      line-height: 40px; 
+      line-height: 40px;
       padding: 0 20px;
       min-height: 80px;
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .actions {
+          display: flex;
+          gap: 8px;
+          justify-content: end;
+          align-items: center;
+
+          button{
+            cursor: pointer;
+            padding: 5px 10px;
+          }
+        }
+      }
 
       .address-bar {
         display: flex;
@@ -34,7 +52,7 @@ body {
         align-items: flex-start;
         gap: 26px;
 
-        .address{
+        .address {
           line-height: 20px;
           align-self: center;
           display: flex;
@@ -92,7 +110,8 @@ body {
       gap: 8px;
       border-top: #dddbdb 1px solid;
       z-index: 5;
-      .counter {  
+
+      .counter {
         display: flex;
         gap: 6px;
         font-size: 12px;
@@ -105,7 +124,7 @@ body {
           font-weight: bold;
         }
 
-        .counter-value{
+        .counter-value {
           font-weight: bold;
         }
       }

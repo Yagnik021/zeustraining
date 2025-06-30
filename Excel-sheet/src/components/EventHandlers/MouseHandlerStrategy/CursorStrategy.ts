@@ -23,34 +23,27 @@ export class CursorStrategy {
         const hoverCol = this.sheet.getColIndexFromX(x);
         const hoverRow = this.sheet.getRowIndexFromY(y);
 
-        const colRightEdge = this.sheet.columns
-            .slice(0, hoverCol + 1)
-            .reduce((sum, col) => sum + col.width, 0);
-        const rowBottomEdge = this.sheet.rows
-            .slice(0, hoverRow + 1)
-            .reduce((sum, row) => sum + row.height, 0);
+        const colRightEdge = this.sheet.cumulativeColWidths[hoverCol] ?? 0;
+        const rowBottomEdge = this.sheet.cumulativeRowHeights[hoverRow] ?? 0;
 
         const withinColResizeZone = Math.abs(x - colRightEdge) < 5;
         const withinRowResizeZone = Math.abs(y - rowBottomEdge) < 5;
 
-        const scaledClientX = (e.clientX - rect.left) / dpr;
-        const scaledClientY = (e.clientY - rect.top) / dpr;
-
-        if (scaledClientX < 0 || scaledClientY < 0) {
+        if (rawX < 0 || rawY < 0) {
             this.sheet.container.style.cursor = "default";
             this.sheet.resizeTarget = null;
             return;
         }
 
         if (!this.sheet.isResizing) {
-            if (withinColResizeZone && scaledClientY <= this.sheet.colHeaderHeight) {
-                this.sheet.container.style.cursor = "ew-resize";
+            if (withinColResizeZone && rawY <= this.sheet.colHeaderHeight) {
+                if(this.sheet.container.style.cursor !== "ew-resize") this.sheet.container.style.cursor = "ew-resize";
                 this.sheet.resizeTarget = { type: "column", index: hoverCol };
-            } else if (withinRowResizeZone && scaledClientX <= this.sheet.rowHeaderWidth) {
-                this.sheet.container.style.cursor = "ns-resize";
+            } else if (withinRowResizeZone && rawX <= this.sheet.rowHeaderWidth) {
+                if(this.sheet.container.style.cursor !== "ns-resize") this.sheet.container.style.cursor = "ns-resize";
                 this.sheet.resizeTarget = { type: "row", index: hoverRow };
             } else {
-                this.sheet.container.style.cursor = "cell";
+                if(this.sheet.container.style.cursor !== "cell") this.sheet.container.style.cursor = "cell";
                 this.sheet.resizeTarget = null;
             }
         }

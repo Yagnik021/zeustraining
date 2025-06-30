@@ -6,8 +6,8 @@
  */
 class Cell {
     text: string;
-    rowIndex: number;
-    colIndex: number;
+    // rowIndex: number;
+    // colIndex: number;
 
 
     /**
@@ -18,8 +18,8 @@ class Cell {
      */
     constructor(text: string = "", rowIndex: number, colIndex: number) {
         this.text = text;
-        this.rowIndex = rowIndex;
-        this.colIndex = colIndex;
+        // this.rowIndex = rowIndex;
+        // this.colIndex = colIndex;
     }
 
     /**

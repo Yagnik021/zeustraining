@@ -30,7 +30,7 @@ export function copySelectionToClipboardBuffer(sheet: ExcelSheet) {
     for (let r = area.startRow; r <= area.endRow; r++) {
         const row: string[] = [];
         for (let c = area.startCol; c <= area.endCol; c++) {
-            const cell = sheet.getCell(r, c);
+            const cell = sheet.getOrCreateCell(r, c);
             row.push(cell?.text ?? "");
         }
         buffer.push(row);

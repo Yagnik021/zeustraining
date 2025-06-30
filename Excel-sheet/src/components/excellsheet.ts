@@ -66,6 +66,8 @@ const colIndexToField: Record<number, keyof DataRow> = {
  * @member rowHeaderWidth - Width of the row header area (usually fixed).
  * @member colHeaderHeight - Height of the column header area (usually fixed).
  * @member mouseHandler - Manages pointer interactions and delegates strategies (resize, selection, etc).
+ * @member cumulativeColWidths - An array of cumulative column widths for efficient rendering.
+ * @member cumulativeRowHeights - An array of cumulative row heights for efficient rendering.
  */
 
 class ExcelSheet {
@@ -82,7 +84,7 @@ class ExcelSheet {
 
     public rows: Row[] = [];
     public columns: Column[] = [];
-    public cells: Cell[][] = [];
+    public cells = new Map<number, Map<number, Cell>>();
     public sheetWidth = 0;
     public sheetHeight = 0;
     public commandManager: CommandManager;
@@ -94,7 +96,8 @@ class ExcelSheet {
     public rowHeaderWidth = 50;
     public colHeaderHeight = 30;
     public mouseHandler!: MouseHandler;
-
+    public cumulativeColWidths: number[] = [];
+    public cumulativeRowHeights: number[] = [];
 
     /**
      * Constructor for ExcelSheet.
@@ -108,6 +111,7 @@ class ExcelSheet {
         this.container = container;
         this.formularBarInput = formularBarInput;
         this.generateSheet(jsonData.length + 1, 500, 30, 80, 1, "black");
+        this.updateCumulativeSizes();
         this.attachEventListners();
         this.selectedCell = { row: 0, col: 0 };
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
@@ -135,7 +139,7 @@ class ExcelSheet {
         lineWidth: number,
         lineColor: string
     ) {
-        this.rows = Array.from({ length: numberOfRows }, () => new Row(cellHeight));
+        this.rows = Array.from({ length: numberOfRows }, (_, index) => new Row(cellHeight, index));
         this.columns = Array.from(
             { length: numberOfColumns },
             (_, index) => new Column(index, cellWidth)
@@ -168,38 +172,57 @@ class ExcelSheet {
         this.ctx.textBaseline = "middle";
         this.ctx.fillStyle = "black";
 
+        this.cells = new Map();
 
         for (let row = 0; row < numberOfRows; row++) {
-            const rowCells: Cell[] = [];
+            const rowMap = new Map();
 
             for (let col = 0; col < numberOfColumns; col++) {
-                let cell;
+                let cell: Cell;
+
                 if (row === 0) {
-                    if (col <= headers.length - 1) {
+                    if (col < headers.length) {
                         cell = new Cell(headers[col], row, col);
-                    }
-                    else {
-                        cell = new Cell("", row, col);
+                    } else {
+                        continue; // Skip empty cell
                     }
                 } else if (row <= jsonData.length) {
-                    if (col <= headers.length - 1) {
+                    if (col < headers.length) {
                         const attribute = headers[col];
                         const value = jsonData[row - 1][attribute];
-
                         cell = new Cell(String(value), row, col);
-                    }
-                    else {
-                        cell = new Cell("", row, col);
+                    } else {
+                        continue; // Skip empty cell
                     }
                 } else {
-                    cell = new Cell("", row, col);
+                    continue; // Skip empty cell
                 }
-                rowCells.push(cell);
+
+                rowMap.set(col, cell);
             }
 
-            this.cells.push(rowCells);
+            if (rowMap.size > 0) {
+                this.cells.set(row, rowMap);
+            }
         }
 
+
+    }
+
+    /**
+     * Updates the cumulative sizes of columns and rows.
+     */
+    updateCumulativeSizes() {
+        this.cumulativeColWidths = this.columns.reduce<number[]>((acc, col) => {
+            const last = acc[acc.length - 1] || 0;
+            acc.push(last + col.width);
+            return acc;
+        }, []);
+        this.cumulativeRowHeights = this.rows.reduce<number[]>((acc, row) => {
+            const last = acc[acc.length - 1] || 0;
+            acc.push(last + row.height);
+            return acc;
+        }, []);
     }
 
     /**
@@ -222,7 +245,7 @@ class ExcelSheet {
         if (addressDiv) {
             if (cell) {
                 addressDiv.innerHTML = this.columns[cell.col].label + (cell.row + 1);
-                this.formularBarInput.value = this.getCell(cell.row, cell.col)?.text || "";
+                this.formularBarInput.value = this.getOrCreateCell(cell.row, cell.col)?.text || "";
             } else {
                 addressDiv.innerHTML = "";
                 this.formularBarInput.value = "";
@@ -231,6 +254,28 @@ class ExcelSheet {
 
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
     }
+
+    getOrCreateCell(row: number, col: number): Cell {
+        let rowMap = this.cells.get(row);
+        if (!rowMap) {
+            rowMap = new Map();
+            this.cells.set(row, rowMap);
+        }
+        let cell = rowMap.get(col);
+        if (!cell) {
+            cell = new Cell("", row, col);
+            rowMap.set(col, cell);
+        }
+        return cell;
+    }
+
+    setCell(row: number, col: number, cell: Cell): void {
+        if (!this.cells.has(row)) {
+            this.cells.set(row, new Map());
+        }
+        this.cells.get(row)!.set(col, cell);
+    }
+
 
     /**
      * To get the column index from the x position
@@ -283,7 +328,7 @@ class ExcelSheet {
             const colIndex = this.getColIndexFromX(x);
             const rowIndex = this.getRowIndexFromY(y);
 
-            const cell = this.getCell(rowIndex, colIndex);
+            const cell = this.getOrCreateCell(rowIndex, colIndex);
 
             if (cell) {
                 this.showInputOverCell(cell, rowIndex, colIndex);
@@ -349,7 +394,7 @@ class ExcelSheet {
                     break;
                 case "Enter":
                     e.preventDefault();
-                    this.showInputOverCell(this.getCell(row, col)!, row, col);
+                    this.showInputOverCell(this.getOrCreateCell(row, col)!, row, col);
                     return;
             }
 
@@ -385,7 +430,7 @@ class ExcelSheet {
                 const row = this.selectedCell.row;
                 const col = this.selectedCell.col;
                 const newValue = this.formularBarInput.value;
-                const currentValue = this.cells[row][col].text;
+                const currentValue = this.getOrCreateCell(row, col)?.text;
 
                 if (newValue === currentValue) return;
 
@@ -393,7 +438,7 @@ class ExcelSheet {
                     row,
                     col,
                     newValue,
-                    (r, c) => this.getCell(r, c),
+                    (r, c) => this.getOrCreateCell(r, c),
                     () => this.redrawVisible(this.container.scrollTop, this.container.scrollLeft)
                 );
 
@@ -403,18 +448,18 @@ class ExcelSheet {
     }
 
 
-    /**
-     * To get the cell from the grid
-     * @param row Row index of the cell
-     * @param col Column index of the cell
-     * @returns Cell object
-     */
-    public getCell(row: number, col: number): Cell | null {
-        if (this.cells[row] && this.cells[row][col]) {
-            return this.cells[row][col];
-        }
-        return null;
-    }
+    // /**
+    //  * To get the cell from the grid
+    //  * @param row Row index of the cell
+    //  * @param col Column index of the cell
+    //  * @returns Cell object
+    //  */
+    // public getOrCreateCell(row: number, col: number): Cell | null {
+    //     if (this.cells[row] && this.cells[row][col]) {
+    //         return this.cells[row][col];
+    //     }
+    //     return null;
+    // }
 
 
     /**
@@ -424,8 +469,8 @@ class ExcelSheet {
      * @param col Column index of the cell
      */
     public showInputOverCell(cell: Cell, row: number, col: number) {
-        const x = this.columns.slice(0, col).reduce((sum, c) => sum + c.width, 0);
-        const y = this.rows.slice(0, row).reduce((sum, r) => sum + r.height, 0);
+        const x = this.cumulativeColWidths[col - 1] ?? 0;
+        const y = this.cumulativeRowHeights[row - 1] ?? 0;
 
         this.selectedCell = { row, col };
 
@@ -456,7 +501,7 @@ class ExcelSheet {
                 row,
                 col,
                 newValue,
-                (r, c) => this.getCell(r, c),
+                (r, c) => this.getOrCreateCell(r, c),
                 () => this.redrawVisible(this.container.scrollTop, this.container.scrollLeft)
             );
             this.commandManager.executeCommand(cmd);
@@ -477,6 +522,8 @@ class ExcelSheet {
      * @param scrollLeft Current scroll left of the grid
      */
     public redrawVisible(scrollTop: number, scrollLeft: number): void {
+
+
 
         const viewportWidth = this.canvas.width;
         const viewportHeight = this.canvas.height;
@@ -546,7 +593,7 @@ class ExcelSheet {
             }
 
             // Also update canvas cell
-            this.getCell(row, col)?.updateText(newText);
+            this.getOrCreateCell(row, col)?.updateText(newText);
         }
     }
 
@@ -589,15 +636,15 @@ class ExcelSheet {
      */
     drawCellContent(startRow: number, endRow: number, startCol: number, endCol: number, scrollTop: number, scrollLeft: number) {
         // === Draw cell text only
-        let y = this.rows.slice(0, startRow).reduce((sum, r) => sum + r.height, 0) - scrollTop;
+        let y = (this.cumulativeRowHeights[startRow - 1] ?? 0) - scrollTop;
 
         for (let row = startRow; row <= endRow; row++) {
             const rowHeight = this.rows[row].height;
-            let x = this.columns.slice(0, startCol).reduce((sum, c) => sum + c.width, 0) - scrollLeft;
+            let x = (this.cumulativeColWidths[startCol - 1] ?? 0) - scrollLeft;
 
             for (let col = startCol; col <= endCol; col++) {
                 const colWidth = this.columns[col].width;
-                const cell = this.cells[row]?.[col];
+                const cell = this.getOrCreateCell(row, col);
                 if (!cell) continue;
 
                 const cellX = x + this.rowHeaderWidth;
@@ -655,14 +702,14 @@ class ExcelSheet {
         for (let row = startAreaRow; row <= endAreaRow; row++) {
             if (row < startRow || row > endRow) continue;
 
-            const y = this.rows.slice(0, row).reduce((sum, r) => sum + r.height, 0) - scrollTop + this.colHeaderHeight;
+            const y = (this.cumulativeRowHeights[row - 1] ?? 0) - scrollTop + this.colHeaderHeight;
             const rowHeight = this.rows[row].height;
 
             for (let col = startAreaCol; col <= endAreaCol; col++) {
 
                 if (col < startCol || col > endCol) continue;
 
-                const x = this.columns.slice(0, col).reduce((sum, c) => sum + c.width, 0) - scrollLeft + this.rowHeaderWidth;
+                const x = (this.cumulativeColWidths[col - 1] ?? 0) - scrollLeft + this.rowHeaderWidth;
                 const colWidth = this.columns[col].width;
 
                 // === Fill background
@@ -670,7 +717,7 @@ class ExcelSheet {
                 this.ctx.fillRect(x, y, colWidth, rowHeight);
 
                 // === Draw cell text in black
-                const cell = this.cells[row]?.[col];
+                const cell = this.getOrCreateCell(row, col);
                 if (cell) {
                     this.ctx.fillStyle = "black";
                     this.renderText(
@@ -750,8 +797,10 @@ class ExcelSheet {
      */
 
     drawGridLines(startRow: number, endRow: number, startCol: number, endCol: number, scrollTop: number, scrollLeft: number) {
+
+
         // Horizontal lines
-        let currentY = this.rows.slice(0, startRow).reduce((sum, r) => sum + r.height, 0) - scrollTop + this.colHeaderHeight;
+        let currentY = (this.cumulativeRowHeights[startRow - 1] ?? 0) - scrollTop + this.colHeaderHeight;
         for (let row = startRow; row <= endRow + 1; row++) {
             const rowHeight = this.rows[row]?.height || 0;
 
@@ -781,7 +830,7 @@ class ExcelSheet {
         }
 
         // Vertical lines
-        let currentX = this.columns.slice(0, startCol).reduce((sum, c) => sum + c.width, 0) - scrollLeft + this.rowHeaderWidth;
+        let currentX = (this.cumulativeColWidths[startCol - 1] ?? 0) - scrollLeft + this.rowHeaderWidth;
         for (let col = startCol; col <= endCol + 1; col++) {
             const colWidth = this.columns[col]?.width || 0;
 
@@ -822,7 +871,7 @@ class ExcelSheet {
         this.ctx.fillRect(0, this.colHeaderHeight, this.rowHeaderWidth, this.canvas.height - this.colHeaderHeight);
 
         for (let row = startRow; row <= endRow; row++) {
-            const y = this.colHeaderHeight + this.rows.slice(0, row).reduce((sum, r) => sum + r.height, 0) - scrollTop;
+            const y = this.colHeaderHeight + (this.cumulativeRowHeights[row - 1] ?? 0) - scrollTop;
             const height = this.rows[row].height;
 
             const isSelectedRow = this.selectedRow === row;
@@ -893,7 +942,7 @@ class ExcelSheet {
     drawColumnHeaders(startCol: number, endCol: number, scrollLeft: number) {
         this.ctx.fillStyle = "black";
         for (let col = startCol; col <= endCol; col++) {
-            const x = this.rowHeaderWidth + this.columns.slice(0, col).reduce((sum, c) => sum + c.width, 0) - scrollLeft;
+            const x = this.rowHeaderWidth + (this.cumulativeColWidths[col - 1] ?? 0) - scrollLeft;
             const width = this.columns[col].width;
 
             const isInSelectedArea =
@@ -961,7 +1010,7 @@ class ExcelSheet {
         const { startRow, endRow, startCol, endCol } = this.selectedArea;
         if (startRow === null || endRow === null || startCol === null || endCol === null) {
             if (this.selectedCell?.row && this.selectedCell.col) {
-                const cell = this.cells[this.selectedCell.row]?.[this.selectedCell.col];
+                const cell = this.getOrCreateCell(this.selectedCell.row, this.selectedCell.col);
 
                 this.renderAreaStatus({
                     count: 1,
@@ -978,7 +1027,7 @@ class ExcelSheet {
 
         for (let row = Math.min(startRow, endRow); row <= Math.max(startRow, endRow); row++) {
             for (let col = Math.min(startCol, endCol); col <= Math.max(startCol, endCol); col++) {
-                const cell = this.cells[row]?.[col];
+                const cell = this.getOrCreateCell(row, col);
                 if (!cell || cell.text.trim() === "") continue;
 
                 totalCount++;
@@ -1039,6 +1088,67 @@ class ExcelSheet {
         updateElement(".sum-item", stats.sum);
         updateElement(".avg-item", stats.avg);
     }
+
+    addRow(atIndex: number) {
+        const newCells = new Map();
+
+        for (const [rowIdx, rowMap] of this.cells) {
+            const newIndex = rowIdx >= atIndex ? rowIdx + 1 : rowIdx;
+            newCells.set(newIndex, rowMap);
+        }
+
+        this.cells = newCells;
+        this.cells.set(atIndex, new Map());
+        this.rows.splice(atIndex, 0, new Row(30, atIndex));
+
+        const virtualArea = document.querySelector(".virtual-canvas-area") as HTMLElement;
+        // const oldHeight = parseFloat(virtualArea.style.height) || 0; // parse "600px" → 600 (default 0)
+        const addedHeight = this.rows[atIndex].height;
+        this.sheetHeight += addedHeight;
+        virtualArea.style.height = `${this.sheetHeight}px`;
+        this.updateCumulativeSizes();
+        this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
+    }
+
+    addColumn(index: number) {
+        const newColumn = new Column(index);
+        this.columns.splice(index, 0, newColumn);
+
+        for (let i = index + 1; i < this.columns.length; i++) {
+            this.columns[i].updateIndex(i);
+        }
+
+        // 3. Shift cells to the right and insert blank cell in new column
+        for (const [rowIndex, colMap] of this.cells.entries()) {
+            const newColMap = new Map<number, Cell>();
+
+            for (const [colIndex, cell] of colMap.entries()) {
+                if (colIndex >= index) {
+                    newColMap.set(colIndex + 1, cell);
+                } else {
+                    newColMap.set(colIndex, cell);
+                }
+            }
+
+            const blankCell = new Cell("", rowIndex, index);
+            newColMap.set(index, blankCell);
+
+            this.cells.set(rowIndex, newColMap);
+        }
+
+        const virtualArea = document.querySelector(".virtual-canvas-area") as HTMLElement;
+        const addedWidth = this.columns[index].width;
+        this.sheetWidth += addedWidth;
+        virtualArea.style.width = `${this.sheetWidth}px`;
+
+        console.log(virtualArea.style.width);
+
+
+        this.updateCumulativeSizes();
+        this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
+    }
+
+
 }
 
 export { ExcelSheet };

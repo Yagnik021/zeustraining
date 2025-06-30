@@ -27,8 +27,8 @@ export class MouseHandler {
         });
 
         container.addEventListener("pointermove", (e) => {
-            this.cursorStrategy.handle(e); // Update cursor style + resizeTarget
-            this.activeStrategy?.onPointerMove(e); // Forward to strategy
+            this.cursorStrategy.handle(e); 
+            this.activeStrategy?.onPointerMove(e); 
         });
 
         window.addEventListener("pointerup", (e) => {
@@ -50,12 +50,8 @@ export class MouseHandler {
         const col = this.sheet.getColIndexFromX(x);
         const row = this.sheet.getRowIndexFromY(y);
 
-        const colRightEdge = this.sheet.columns
-            .slice(0, col + 1)
-            .reduce((sum, c) => sum + c.width, 0);
-        const rowBottomEdge = this.sheet.rows
-            .slice(0, row + 1)
-            .reduce((sum, r) => sum + r.height, 0);
+        const colRightEdge = this.sheet.cumulativeColWidths[col] ?? 0;
+        const rowBottomEdge = this.sheet.cumulativeRowHeights[row] ?? 0;
 
         const withinColResizeZone = Math.abs(x - colRightEdge) < 5;
         const withinRowResizeZone = Math.abs(y - rowBottomEdge) < 5;

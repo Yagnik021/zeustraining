@@ -10,3 +10,25 @@ const formularBarInput = document.querySelector(".formular-bar-input") as HTMLIn
 
 const sheet = new ExcelSheet(canvas, container, formularBarInput);
 
+function setupActionButtons() {
+    const addRowBtn = document.getElementById("add-row");
+    const addColBtn = document.getElementById("add-column");
+
+    addRowBtn?.addEventListener("click", () => {
+        const index = sheet.selectedCell?.row ?? sheet.selectedRow;
+        if (index != null) {
+            sheet.addRow(index);
+            sheet.redrawVisible(sheet.container.scrollTop, sheet.container.scrollLeft);
+        }
+    });
+
+    addColBtn?.addEventListener("click", () => {
+        const index = sheet.selectedCell?.col ?? sheet.selectedCol;
+        if (index != null) {
+            sheet.addColumn(index);
+            sheet.redrawVisible(sheet.container.scrollTop, sheet.container.scrollLeft);
+        }
+    });
+}
+
+setupActionButtons();

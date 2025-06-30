@@ -46,7 +46,7 @@ export class CutCommand implements Command {
         for (let r = area.startRow; r <= area.endRow; r++) {
             const row: string[] = [];
             for (let c = area.startCol; c <= area.endCol; c++) {
-                const cell = this.sheet.getCell(r, c);
+                const cell = this.sheet.getOrCreateCell(r, c);
                 if (cell) {
                     this.previousValues.push({ row: r, col: c, value: cell.text });
                     row.push(cell.text);
@@ -62,7 +62,7 @@ export class CutCommand implements Command {
 
     undo() {
         for (const snap of this.previousValues) {
-            const cell = this.sheet.getCell(snap.row, snap.col);
+            const cell = this.sheet.getOrCreateCell(snap.row, snap.col);
             if (cell) cell.text = snap.value;
         }
 

@@ -22,7 +22,7 @@ export class PasteCommand implements Command {
             for (let c = 0; c < this.dataToPaste[r].length; c++) {
                 const row = this.startRow + r;
                 const col = this.startCol + c;
-                const cell = this.sheet.getCell(row, col);
+                const cell = this.sheet.getOrCreateCell(row, col);
                 if (cell) {
                     this.previousValues.push({ row, col, value: cell.text });
                     cell.text = this.dataToPaste[r][c];
@@ -35,7 +35,7 @@ export class PasteCommand implements Command {
 
     undo() {
         for (const snapshot of this.previousValues) {
-            const cell = this.sheet.getCell(snapshot.row, snapshot.col);
+            const cell = this.sheet.getOrCreateCell(snapshot.row, snapshot.col);
             if (cell) {
                 cell.text = snapshot.value;
             }

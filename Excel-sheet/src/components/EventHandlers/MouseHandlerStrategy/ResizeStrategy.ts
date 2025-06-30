@@ -40,6 +40,7 @@ class ResizeStrategy implements MouseStrategy {
             row.height = Math.max(30, row.height + deltaY);
         }
 
+        this.sheet.updateCumulativeSizes();
         this.sheet.resizeStartPos = { x: e.clientX, y: e.clientY };
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
