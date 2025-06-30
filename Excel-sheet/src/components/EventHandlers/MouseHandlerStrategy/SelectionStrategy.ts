@@ -1,15 +1,32 @@
 import type { ExcelSheet } from "../../Excellsheet";
 import type { MouseStrategy } from "./MouseStrategy";
 
+/**
+ * Mouse handler strategy for selection
+ * @implements MouseStrategy
+ * @exports SelectionStrategy
+ * @private startRow : start row index of the selection area
+ * @private startCol : start column index of the selection area
+ */
 class SelectionStrategy implements MouseStrategy {
     private startRow: number;
     private startCol: number;
 
+    /**
+     * Constructor
+     * @param sheet Reference to the sheet 
+     * @param row Start row for the selection
+     * @param col Start column for the selection
+     */
     constructor(private sheet: ExcelSheet, row: number, col: number) {
         this.startRow = row;
         this.startCol = col;
     }
 
+    /**
+     * Event handler for pointer down
+     * @param e : Pointer event
+     */
     onPointerDown(e: MouseEvent): void {
         const rect = this.sheet.canvas.getBoundingClientRect();
 
@@ -68,6 +85,11 @@ class SelectionStrategy implements MouseStrategy {
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
 
+
+    /**
+     * Event handler for pointer down
+     * @param e : Pointer event
+     */
     onPointerMove(e: MouseEvent): void {
         if (!this.sheet.isSelectingArea) return;
 
@@ -101,6 +123,10 @@ class SelectionStrategy implements MouseStrategy {
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
 
+    /**
+     * Event handler for pointer down
+     * @param e : Pointer event
+     */
     onPointerUp(_e: MouseEvent): void {
         this.sheet.isSelectingArea = false;
     }

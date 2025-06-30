@@ -1,8 +1,16 @@
 import type { ExcelSheet } from "../../Excellsheet";
 
+/**
+ * Mouse handler strategy for cursor
+ * @exports CursorStrategy
+ */
 export class CursorStrategy {
     constructor(private sheet: ExcelSheet) { }
 
+    /**
+     * Handle mouse event
+     * @param e Mouse event
+     */
     handle(e: MouseEvent) {
         const rect = this.sheet.canvas.getBoundingClientRect();
         const dpr = this.sheet.dpr;

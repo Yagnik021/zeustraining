@@ -7,15 +7,11 @@ class ResizeStrategy implements MouseStrategy {
 
     constructor(private sheet: ExcelSheet, private type: "row" | "column", private index: number) { }
 
+    /**
+     * Event handler for pointer down
+     * @param e : Pointer event
+     */
     onPointerDown(e: MouseEvent): void {
-        const rect = this.sheet.canvas.getBoundingClientRect();
-        const dpr = this.sheet.dpr;
-        const rawX = (e.clientX - rect.left) / dpr;
-        const rawY = (e.clientY - rect.top) / dpr;
-
-        const x = rawX + this.sheet.container.scrollLeft - this.sheet.rowHeaderWidth;
-        const y = rawY + this.sheet.container.scrollTop - this.sheet.colHeaderHeight;
-
         this.sheet.isResizing = true;
         this.sheet.resizeStartPos = { x: e.clientX, y: e.clientY };
 
@@ -26,6 +22,10 @@ class ResizeStrategy implements MouseStrategy {
         }
     }
 
+    /**
+     * Event handler for pointer move
+     * @param e : Pointer event
+     */
     onPointerMove(e: MouseEvent): void {
         if (!this.sheet.isResizing) return;
 
@@ -44,6 +44,10 @@ class ResizeStrategy implements MouseStrategy {
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
 
+    /**
+     * Event handler for pointer up
+     * @param e : Pointer event
+     */
     onPointerUp(e: MouseEvent): void {
         if (!this.sheet.isResizing) return;
 

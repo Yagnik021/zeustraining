@@ -4,7 +4,6 @@ import { Cell } from "./Cell";
 import { CommandManager } from "./Commands/CommandManger";
 import { jsonData, headers } from "./jsonData";
 import { EditCellCommand } from "./Commands/EditCommandCell";
-import { ResizeCommand } from "./Commands/ResizeCommand";
 import { MouseHandler } from "./EventHandlers/MouseHandler";
 import { copySelectionToClipboardBuffer } from "./Commands/CopyCommad";
 import { CutCommand } from "./Commands/CutCommand";
@@ -43,51 +42,59 @@ const colIndexToField: Record<number, keyof DataRow> = {
 
 /**
  * The ExcelSheet class represents the main Excel sheet component.
- * @member Rows[] rows - An array of Row objects representing the rows in the Excel sheet.
- * @member Columns[] columns - An array of Column objects representing the columns in the Excel sheet.
- * @member Cells[][] cells - A 2D array of Cell objects representing the cells in the Excel sheet.
- * @member number sheetWidth - The width of the Excel sheet in pixels.
- * @member number sheetHeight - The height of the Excel sheet in pixels.
- * @member boolean isResizing - A flag indicating whether the Excel sheet is currently being resized.
- * @member resizeTarget - An object representing the target of the resize operation.
- * @member resizeStartPos - An object representing the starting position of the resize operation.
- * @member selectedCell - An object representing the currently selected cell in the Excel sheet.
- * @member commandManager - An instance of the CommandManager class representing the command manager for the Excel sheet.
- * @member selectedRow - The index of the currently selected row in the Excel sheet.
- * @member selectedCol - The index of the currently selected column in the Excel sheet.
- * @member selectedArea - An object representing the currently selected area in the Excel sheet.
- * @member isSelectingArea - A flag indicating whether the user is currently selecting an area in the Excel sheet.
- * @member canvas - The canvas element for rendering the Excel sheet.
- * @member ctx - The canvas context for rendering the Excel sheet.
- * @member container - The container element for the Excel sheet.
- * @member formularBarInput - The input element for the formular bar.
+ *
+ * @member rows - An array of Row objects representing the rows in the Excel sheet.
+ * @member columns - An array of Column objects representing the columns in the Excel sheet.
+ * @member cells - A 2D array of Cell objects representing the cells in the Excel sheet.
+ * @member sheetWidth - The total width of the Excel sheet in pixels.
+ * @member sheetHeight - The total height of the Excel sheet in pixels.
+ * @member isResizing - Indicates whether a resize operation is currently in progress.
+ * @member resizeTarget - The target column or row being resized.
+ * @member resizeStartPos - The screen position where the resize interaction started.
+ * @member _selectedCell - Internally tracks the currently selected cell (use selectedCell getter/setter externally).
+ * @member isSelectingArea - Indicates whether the user is currently selecting a cell area.
+ * @member dpr - The device pixel ratio used for accurate canvas rendering.
+ * @member canvas - The canvas element used to render the Excel sheet.
+ * @member ctx - The 2D rendering context for the canvas.
+ * @member clipboardBuffer - Stores copied or cut cell data for paste operations.
+ * @member commandManager - Manages undo/redo commands for cell edits and operations.
+ * @member selectedRow - The currently selected row (e.g., for full row selection).
+ * @member selectedCol - The currently selected column (e.g., for full column selection).
+ * @member selectedArea - Defines the currently selected cell range.
+ * @member container - The outer container element holding the canvas and scrollbars.
+ * @member formularBarInput - The input box linked to the formula bar.
+ * @member rowHeaderWidth - Width of the row header area (usually fixed).
+ * @member colHeaderHeight - Height of the column header area (usually fixed).
+ * @member mouseHandler - Manages pointer interactions and delegates strategies (resize, selection, etc).
  */
 
 class ExcelSheet {
 
+    public isResizing = false;
+    public resizeTarget: { type: "column" | "row", index: number } | null = null;
+    public resizeStartPos = { x: 0, y: 0 };
+    private _selectedCell: { row: number; col: number } | null = null;
+    public isSelectingArea = false;
+    public dpr = window.devicePixelRatio || 1;
+    private ctx: CanvasRenderingContext2D;
+    public canvas: HTMLCanvasElement;
+    public clipboardBuffer: string[][] | null = null;
+
     public rows: Row[] = [];
     public columns: Column[] = [];
-    cells: Cell[][] = [];
-    sheetWidth: number = 0;
-    sheetHeight: number = 0;
-    public isResizing: boolean = false;
-    resizeTarget: { type: "column" | "row", index: number } | null = null;
-    public resizeStartPos: { x: number, y: number } = { x: 0, y: 0 };
-    _selectedCell: { row: number; col: number } | null = null;
-    commandManager: CommandManager;
-    selectedRow: number | null = null;
-    selectedCol: number | null = null;
-    selectedArea: { startRow: number | null, startCol: number | null, endRow: number | null, endCol: number | null } = { startRow: null, startCol: null, endRow: null, endCol: null };
-    isSelectingArea: boolean = false;
-    canvas: HTMLCanvasElement;
-    ctx: CanvasRenderingContext2D;
+    public cells: Cell[][] = [];
+    public sheetWidth = 0;
+    public sheetHeight = 0;
+    public commandManager: CommandManager;
+    public selectedRow: number | null = null;
+    public selectedCol: number | null = null;
+    public selectedArea: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null } = { startRow: null, startCol: null, endRow: null, endCol: null };
     public container: HTMLElement;
     public formularBarInput: HTMLInputElement;
-    rowHeaderWidth: number = 50;
-    colHeaderHeight: number = 30;
-    dpr: number = window.devicePixelRatio || 1;
-    mouseHandler!: MouseHandler;
-    clipboardBuffer: string[][] | null = null;
+    public rowHeaderWidth = 50;
+    public colHeaderHeight = 30;
+    public mouseHandler!: MouseHandler;
+
 
     /**
      * Constructor for ExcelSheet.
