@@ -4,19 +4,35 @@ import { ResizeStrategy } from "./MouseHandlerStrategy/ResizeStrategy";
 import { SelectionStrategy } from "./MouseHandlerStrategy/SelectionStrategy";
 import { CursorStrategy } from "./MouseHandlerStrategy/CursorStrategy";
 
+/**
+ * Class for handling mouse events
+ * @member activeStrategy - The currently active mouse strategy.
+ * @member cursorStrategy - The strategy for handling cursor interactions.
+ */
 export class MouseHandler {
     private activeStrategy: MouseStrategy | null = null;
     private cursorStrategy: CursorStrategy;
 
+    /**
+     * Constructor
+     * @param sheet Reference to the sheet 
+     */
     constructor(private sheet: ExcelSheet) {
         this.cursorStrategy = new CursorStrategy(sheet);
         this.attachEvents();
     }
 
+    /**
+     * To set the strategy
+     * @param strategy Strategy to set
+     */
     private setStrategy(strategy: MouseStrategy) {
         this.activeStrategy = strategy;
     }
 
+    /**
+     * To attach events to the container
+     */
     private attachEvents() {
         const container = this.sheet.container;
 
@@ -26,17 +42,23 @@ export class MouseHandler {
             strategy.onPointerDown(e);
         });
 
-        container.addEventListener("pointermove", (e) => {
+        window.addEventListener("pointermove", (e) => {
+            e.preventDefault();
             this.cursorStrategy.handle(e); 
-            this.activeStrategy?.onPointerMove(e); 
+            if(this.activeStrategy !== null) this.activeStrategy.onPointerMove(e); 
         });
 
         window.addEventListener("pointerup", (e) => {
-            this.activeStrategy?.onPointerUp(e);
+            if(this.activeStrategy !== null) this.activeStrategy?.onPointerUp(e);
             this.activeStrategy = null;
         });
     }
 
+    /**
+     * Detect the strategy based on the mouse position 
+     * @param e Mouse event
+     * @returns Strategy to use
+     */
     private detectStrategy(e: MouseEvent): MouseStrategy {
         const rect = this.sheet.canvas.getBoundingClientRect();
         const dpr = this.sheet.dpr;

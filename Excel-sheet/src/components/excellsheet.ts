@@ -18,10 +18,6 @@ type DataRow = {
     salary: number;
 };
 
-// let this.rowHeaderWidth = 50 as number;
-// const this.colHeaderHeight = 30 as number;
-
-
 const rowMap = new Map<number, DataRow[]>();
 
 jsonData.forEach((r) => {
@@ -88,8 +84,8 @@ class ExcelSheet {
     public sheetWidth = 0;
     public sheetHeight = 0;
     public commandManager: CommandManager;
-    public selectedRow: number | null = null;
-    public selectedCol: number | null = null;
+    public selectedRows: { startRow: number | null; endRow: number | null } = { startRow: null, endRow: null };
+    public selectedCols: { startCol: number | null; endCol: number | null } = { startCol: null, endCol: null };
     public selectedArea: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null } = { startRow: null, startCol: null, endRow: null, endCol: null };
     public container: HTMLElement;
     public formularBarInput: HTMLInputElement;
@@ -98,6 +94,7 @@ class ExcelSheet {
     public mouseHandler!: MouseHandler;
     public cumulativeColWidths: number[] = [];
     public cumulativeRowHeights: number[] = [];
+    public isInputOn = false;
 
     /**
      * Constructor for ExcelSheet.
@@ -255,6 +252,12 @@ class ExcelSheet {
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
     }
 
+    /**
+     * Get cell if not exists then create a new one
+     * @param row Row index of the cell
+     * @param col Col index of the cell
+     * @returns Cell object
+     */
     getOrCreateCell(row: number, col: number): Cell {
         let rowMap = this.cells.get(row);
         if (!rowMap) {
@@ -269,6 +272,13 @@ class ExcelSheet {
         return cell;
     }
 
+
+    /**
+     * To set the cell
+     * @param row Row index
+     * @param col Col index
+     * @param cell Cell object
+     */
     setCell(row: number, col: number, cell: Cell): void {
         if (!this.cells.has(row)) {
             this.cells.set(row, new Map());
@@ -360,10 +370,16 @@ class ExcelSheet {
                 }
             }
 
+            this.selectedCols = { startCol: null, endCol: null };
+            this.selectedRows = { startRow: null, endRow: null };
+            this.selectedArea = { startRow: null, startCol: null, endRow: null, endCol: null };
+
+            if (this.isInputOn) return;
+
             if (!this.selectedCell) {
                 this.selectedCell = { row: 0, col: 0 };
-                this.selectedCol = null;
-                this.selectedRow = null;
+                this.selectedCols = { startCol: null, endCol: null };
+                this.selectedRows = { startRow: null, endRow: null };
             };
 
             const { row, col } = this.selectedCell;
@@ -392,18 +408,25 @@ class ExcelSheet {
                     }
                     if (newRow >= this.rows.length) newRow = this.rows.length - 1;
                     break;
-                case "Enter":
-                    e.preventDefault();
-                    this.showInputOverCell(this.getOrCreateCell(row, col)!, row, col);
-                    return;
+
             }
 
             this.selectedCell = { row: newRow, col: newCol };
 
             // To change view to Currently selected cell
-            // this.scrollIntoView(newRow, newCol); 
+            this.scrollIntoView(newRow, newCol);
 
             this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
+
+            // === Handle input trigger on key press (A-Z, 0-9, etc.)
+            const isPrintableKey =
+                e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+            if (isPrintableKey) {
+                const { row, col } = this.selectedCell;
+                // Show input with initial value as the key pressed
+                this.showInputOverCell(this.getOrCreateCell(row, col), row, col, e.key);
+            }
         });
 
         window.addEventListener("resize", () => {
@@ -468,7 +491,7 @@ class ExcelSheet {
      * @param row Row index of the cell
      * @param col Column index of the cell
      */
-    public showInputOverCell(cell: Cell, row: number, col: number) {
+    public showInputOverCell(cell: Cell, row: number, col: number, initialValue?: string) {
         const x = this.cumulativeColWidths[col - 1] ?? 0;
         const y = this.cumulativeRowHeights[row - 1] ?? 0;
 
@@ -476,9 +499,10 @@ class ExcelSheet {
 
         const input = document.createElement("input");
         const virtualArea = document.querySelector(".virtual-canvas-area") as HTMLElement;
+        this.isInputOn = true;
 
         input.type = "text";
-        input.value = cell.text.toString();
+        input.value = initialValue ?? cell.text.toString();
         input.style.position = "absolute";
         input.style.left = `${(x + this.rowHeaderWidth) * this.dpr}px`;
         input.style.top = `${(y + this.colHeaderHeight) * this.dpr}px`;
@@ -506,11 +530,15 @@ class ExcelSheet {
             );
             this.commandManager.executeCommand(cmd);
             virtualArea.removeChild(input);
+            this.isInputOn = false;
         });
 
         input.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" || e.key === "Escape" || e.key === "Tab" || e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+            if (e.key === "Enter" || e.key === "Escape" || e.key === "Tab") {
                 input.blur();
+                if (e.key === "Enter") {
+                    this.selectedCell = { row: row + 1, col };
+                }
             }
         });
     }
@@ -560,13 +588,7 @@ class ExcelSheet {
 
         // === Draw grid lines (after text)
         this.ctx.beginPath();
-
         this.ctx.restore();
-
-        this.ctx.fillStyle = "#f0f0f0";
-
-        this.ctx.fillRect(this.rowHeaderWidth, 0, this.canvas.width - this.rowHeaderWidth, this.colHeaderHeight);
-
         this.highlightSelectedArea(startRow, endRow, startCol, endCol, scrollTop, scrollLeft);
         this.drawColumnHeaders(startCol, endCol, scrollLeft);
         this.drawRowHeaders(startRow, endRow, scrollTop);
@@ -608,7 +630,7 @@ class ExcelSheet {
      */
     renderText(value: string, x: number, y: number, width: number, height: number) {
         this.ctx.font = "14px Arial";
-        const padding = 4;
+        const padding = 6;
 
         let text = value;
         let metrics = this.ctx.measureText(text);
@@ -622,7 +644,11 @@ class ExcelSheet {
             text += "…"; // add ellipsis
         }
 
-        this.ctx.fillText(text, x, y);
+        if (!isNaN(Number(text))) {
+            this.ctx.fillText(text, x + (width / 2) - (metrics.width / 2) - padding, y + (height / 2) - 7);
+        } else {
+            this.ctx.fillText(text, x + padding - (width / 2) + (metrics.width / 2), y + (height / 2) - 7);
+        }
     }
 
     /**
@@ -649,11 +675,6 @@ class ExcelSheet {
 
                 const cellX = x + this.rowHeaderWidth;
                 const cellY = y + this.colHeaderHeight;
-
-                if (this.selectedRow === row || this.selectedCol === col) {
-                    this.ctx.fillStyle = "#E8F2EC";
-                    this.ctx.fillRect(cellX, cellY, colWidth, rowHeight);
-                }
 
                 this.ctx.fillStyle = "black";
 
@@ -712,10 +733,16 @@ class ExcelSheet {
                 const x = (this.cumulativeColWidths[col - 1] ?? 0) - scrollLeft + this.rowHeaderWidth;
                 const colWidth = this.columns[col].width;
 
-                // === Fill background
+
                 this.ctx.fillStyle = "#E8F2EC";
                 this.ctx.fillRect(x, y, colWidth, rowHeight);
 
+                const cellRow = this.selectedCell?.row;
+                const cellCol = this.selectedCell?.col;
+                if (cellRow === row && cellCol === col) {
+                    this.ctx.fillStyle = "white";
+                    this.ctx.fillRect(x, y, colWidth, rowHeight);
+                }
                 // === Draw cell text in black
                 const cell = this.getOrCreateCell(row, col);
                 if (cell) {
@@ -734,8 +761,6 @@ class ExcelSheet {
                 this.ctx.lineWidth = 1;
                 this.ctx.strokeRect(x, y, colWidth, rowHeight);
                 this.ctx.stroke();
-
-
                 // === Border logic: Only outer rectangle gets green border
                 const isTopEdge = row === startAreaRow;
                 const isBottomEdge = row === endAreaRow;
@@ -780,7 +805,6 @@ class ExcelSheet {
                     this.ctx.lineTo(x + colWidth, y + rowHeight);
                     this.ctx.stroke();
                 }
-
                 this.ctx.lineWidth = 1;
             }
         }
@@ -804,27 +828,12 @@ class ExcelSheet {
         for (let row = startRow; row <= endRow + 1; row++) {
             const rowHeight = this.rows[row]?.height || 0;
 
-            if (this.selectedRow === row || this.selectedRow === row - 1) {
-                this.ctx.beginPath();
-                this.ctx.strokeStyle = "#137E43";
-                this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = "#ccc";
 
-                this.ctx.moveTo(this.rowHeaderWidth, currentY + 0.5);
-                this.ctx.lineTo(Math.min(this.canvas.width, this.sheetWidth - scrollLeft), currentY + 0.5);
-
-
-                this.ctx.stroke();
-
-                this.ctx.lineWidth = 1;
-                this.ctx.strokeStyle = "#ccc";
-            } else {
-                this.ctx.beginPath();
-                this.ctx.strokeStyle = "#ccc";
-
-                this.ctx.moveTo(this.rowHeaderWidth, currentY + 0.5);
-                this.ctx.lineTo(Math.min(this.canvas.width, this.sheetWidth - scrollLeft), currentY + 0.5);
-                this.ctx.stroke();
-            }
+            this.ctx.moveTo(this.rowHeaderWidth, currentY + 0.5);
+            this.ctx.lineTo(Math.min(this.canvas.width, this.sheetWidth - scrollLeft - (50 - this.rowHeaderWidth)), currentY + 0.5);
+            this.ctx.stroke();
 
             currentY += rowHeight;
         }
@@ -833,23 +842,11 @@ class ExcelSheet {
         let currentX = (this.cumulativeColWidths[startCol - 1] ?? 0) - scrollLeft + this.rowHeaderWidth;
         for (let col = startCol; col <= endCol + 1; col++) {
             const colWidth = this.columns[col]?.width || 0;
-
-            if (this.selectedCol === col || this.selectedCol === col - 1) {
-                this.ctx.beginPath();
-                this.ctx.strokeStyle = "#137E43";
-                this.ctx.lineWidth = 2;
-                this.ctx.moveTo(currentX + 0.5, this.colHeaderHeight);
-                this.ctx.lineTo(currentX - 1.5, Math.min(this.canvas.width, this.sheetHeight - scrollTop));
-                this.ctx.stroke();
-                this.ctx.lineWidth = 1;
-                this.ctx.strokeStyle = "#ccc";
-            } else {
-                this.ctx.beginPath();
-                this.ctx.strokeStyle = "#ccc";
-                this.ctx.moveTo(currentX + 0.5, this.colHeaderHeight);
-                this.ctx.lineTo(currentX + 0.5, Math.min(this.canvas.width, this.sheetHeight - scrollTop));
-                this.ctx.stroke();
-            }
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = "#ccc";
+            this.ctx.moveTo(currentX + 0.5, this.colHeaderHeight);
+            this.ctx.lineTo(currentX + 0.5, Math.min(this.canvas.width, this.sheetHeight - scrollTop));
+            this.ctx.stroke();
 
             currentX += colWidth;
         }
@@ -867,14 +864,15 @@ class ExcelSheet {
      */
     drawRowHeaders(startRow: number, endRow: number, scrollTop: number) {
         // === Draw row header background
-        this.ctx.fillStyle = "#f0f0f0";
-        this.ctx.fillRect(0, this.colHeaderHeight, this.rowHeaderWidth, this.canvas.height - this.colHeaderHeight);
 
         for (let row = startRow; row <= endRow; row++) {
             const y = this.colHeaderHeight + (this.cumulativeRowHeights[row - 1] ?? 0) - scrollTop;
             const height = this.rows[row].height;
 
-            const isSelectedRow = this.selectedRow === row;
+            let isSelectedRow = false;
+            if (this.selectedRows.endRow !== null && this.selectedRows.startRow !== null) {
+                isSelectedRow = this.selectedRows.startRow <= row && this.selectedRows.endRow >= row;
+            }
             const isSelectedCellRow = this.selectedCell?.row === row;
 
             const isInSelectedArea =
@@ -886,7 +884,7 @@ class ExcelSheet {
                 );
 
             // === Fill background
-            if (isSelectedCellRow || isInSelectedArea && !isSelectedRow) {
+            if ((isSelectedCellRow || isInSelectedArea) && !isSelectedRow) {
                 this.ctx.fillStyle = "#CAEAD8";
             } else if (isSelectedRow) {
                 this.ctx.fillStyle = "#137E43";
@@ -899,6 +897,15 @@ class ExcelSheet {
             this.ctx.strokeStyle = isSelectedRow ? "#137E43" : "#ccc";
             this.ctx.lineWidth = isSelectedRow ? 2 : 1;
             this.ctx.strokeRect(0.5, y + 0.5, this.rowHeaderWidth, height);
+
+            if (isSelectedRow && this.selectedRows.endRow !== row) {
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "white";
+                this.ctx.lineWidth = 3;
+                this.ctx.moveTo(0.5, y + height + 0.5);
+                this.ctx.lineTo(this.rowHeaderWidth + 0.5, y + height + 0.5);
+                this.ctx.stroke();
+            }
 
             // === Right edge highlight if selected
             if (isSelectedCellRow || isInSelectedArea && !isSelectedRow) {
@@ -954,10 +961,14 @@ class ExcelSheet {
                 );
 
             const isSelectedCellCol = this.selectedCell?.col === col;
-            const isFullySelectedCol = this.selectedCol === col;
+
+            let isFullySelectedCol = false;
+            if (this.selectedCols.startCol !== null && this.selectedCols.endCol !== null) {
+                isFullySelectedCol = this.selectedCols.startCol <= col && this.selectedCols.endCol >= col;
+            }
 
             // === Set background fill color
-            if (isSelectedCellCol || isInSelectedArea && !isFullySelectedCol) {
+            if ((isSelectedCellCol || isInSelectedArea) && !isFullySelectedCol) {
                 this.ctx.fillStyle = "#CAEAD8";
             } else if (isFullySelectedCol) {
                 this.ctx.fillStyle = "#137E43";
@@ -983,6 +994,15 @@ class ExcelSheet {
                 this.ctx.lineWidth = 2;
                 this.ctx.beginPath();
                 this.ctx.moveTo(x + 0.5, this.colHeaderHeight + 0.5);
+                this.ctx.lineTo(x + width + 0.5, this.colHeaderHeight + 0.5);
+                this.ctx.stroke();
+            }
+
+            if (isFullySelectedCol && this.selectedCols.endCol !== col) {
+                this.ctx.strokeStyle = "white";
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + width + 0.5, 0.5);
                 this.ctx.lineTo(x + width + 0.5, this.colHeaderHeight + 0.5);
                 this.ctx.stroke();
             }
@@ -1089,6 +1109,10 @@ class ExcelSheet {
         updateElement(".avg-item", stats.avg);
     }
 
+    /**
+     * Add new row
+     * @param atIndex Index to add row
+     */
     addRow(atIndex: number) {
         const newCells = new Map();
 
@@ -1102,7 +1126,6 @@ class ExcelSheet {
         this.rows.splice(atIndex, 0, new Row(30, atIndex));
 
         const virtualArea = document.querySelector(".virtual-canvas-area") as HTMLElement;
-        // const oldHeight = parseFloat(virtualArea.style.height) || 0; // parse "600px" → 600 (default 0)
         const addedHeight = this.rows[atIndex].height;
         this.sheetHeight += addedHeight;
         virtualArea.style.height = `${this.sheetHeight}px`;
@@ -1110,6 +1133,10 @@ class ExcelSheet {
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
     }
 
+    /**
+     * Add new column
+     * @param index Index to add column
+     */
     addColumn(index: number) {
         const newColumn = new Column(index);
         this.columns.splice(index, 0, newColumn);
@@ -1141,13 +1168,46 @@ class ExcelSheet {
         this.sheetWidth += addedWidth;
         virtualArea.style.width = `${this.sheetWidth}px`;
 
-        console.log(virtualArea.style.width);
-
-
         this.updateCumulativeSizes();
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
     }
 
+    scrollIntoView(row: number, col: number) {
+        const container = this.container;
+        const scrollTop = container.scrollTop;
+        const scrollLeft = container.scrollLeft;
+        const viewWidth = container.clientWidth;
+        const viewHeight = container.clientHeight;
+
+        const cellX = this.cumulativeColWidths[col - 1] ?? 0 + this.rowHeaderWidth;
+        const cellY = this.cumulativeRowHeights[row - 1] ?? 0 + this.colHeaderHeight;
+
+        const cellWidth = this.columns[col].width;
+        const cellHeight = this.rows[row].height;
+
+        const headerOffsetX = this.rowHeaderWidth;
+        const headerOffsetY = this.colHeaderHeight;
+
+        let newScrollLeft = scrollLeft;
+        let newScrollTop = scrollTop;
+
+        // Horizontal scroll check
+        if (cellX < scrollLeft) {
+            newScrollLeft = cellX;
+        } else if (cellX + cellWidth > scrollLeft + viewWidth - headerOffsetX) {
+            newScrollLeft = cellX + cellWidth - viewWidth + headerOffsetX;
+        }
+
+        // Vertical scroll check
+        if (cellY < scrollTop) {
+            newScrollTop = cellY;
+        } else if (cellY + cellHeight > scrollTop + viewHeight - headerOffsetY) {
+            newScrollTop = cellY + cellHeight - viewHeight + headerOffsetY;
+        }
+
+        container.scrollLeft = newScrollLeft;
+        container.scrollTop = newScrollTop;
+    }
 
 }
 

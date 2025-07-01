@@ -103,30 +103,19 @@ body {
       padding: 5px 10px;
       width: 100%;
       background-color: #F5F5F5;
-      color: rgb(96, 94, 92);
+      color: rgb(46, 45, 44);
       display: flex;
       flex-direction: row;
       justify-content: end;
-      gap: 8px;
+      gap: 10px;
       border-top: #dddbdb 1px solid;
       z-index: 5;
 
       .counter {
         display: flex;
-        gap: 6px;
-        font-size: 12px;
-
-        .counter-item {
-          cursor: pointer;
-        }
-
-        .counter-label {
-          font-weight: bold;
-        }
-
-        .counter-value {
-          font-weight: bold;
-        }
+        gap: 3px;
+        font-size: 14px;
+        // font-family: sans-serif;
       }
     }
   }

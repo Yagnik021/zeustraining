@@ -7,17 +7,26 @@ interface CellSnapshot {
     value: string;
 }
 
+/**
+ * Represents a command for cutting a selected area from the grid.
+ * @member previousValues - An array of cell snapshots before the cut operation.
+ */
 export class CutCommand implements Command {
     private previousValues: CellSnapshot[] = [];
 
+    /**
+     * Constructor
+     * @param sheet Reference to the sheet
+     */
     constructor(private sheet: ExcelSheet) { }
 
+    /**
+     * Executes the cut command.
+     */
     execute() {
         let area = this.sheet.selectedArea;
         let cell = this.sheet.selectedCell;
-        if (!area) {
-            console.log("inside");
-            
+        if (!area) {          
             if (!cell) return;
             area = {
                 startRow: cell.row,
@@ -60,6 +69,9 @@ export class CutCommand implements Command {
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
 
+    /**
+     * Undoes the cut command.
+     */
     undo() {
         for (const snap of this.previousValues) {
             const cell = this.sheet.getOrCreateCell(snap.row, snap.col);

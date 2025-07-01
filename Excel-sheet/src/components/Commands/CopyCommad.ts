@@ -1,5 +1,9 @@
 import type { ExcelSheet } from "../Excellsheet";
 
+/**
+ * Copies the selected area to the clipboard buffer
+ * @param sheet Reference to the sheet
+ */
 export function copySelectionToClipboardBuffer(sheet: ExcelSheet) {
     let area = sheet.selectedArea;
     let cell = sheet.selectedCell;

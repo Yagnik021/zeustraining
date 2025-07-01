@@ -41,6 +41,7 @@ class ResizeStrategy implements MouseStrategy {
         }
 
         this.sheet.updateCumulativeSizes();
+        this.sheet.sheetWidth += deltaX;
         this.sheet.resizeStartPos = { x: e.clientX, y: e.clientY };
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
@@ -67,7 +68,8 @@ class ResizeStrategy implements MouseStrategy {
             );
             this.sheet.commandManager.executeCommand(resizeCommand);
         }
-
+        // this.sheet.sheetWidth = this.sheet.sheetWidth - this.originalSize + finalSize;
+        // this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
         this.sheet.isResizing = false;
         this.sheet.resizeTarget = null;
     }
