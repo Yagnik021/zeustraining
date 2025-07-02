@@ -37,6 +37,7 @@ export class MouseHandler {
         const container = this.sheet.container;
 
         container.addEventListener("pointerdown", (e) => {
+           
             const strategy = this.detectStrategy(e);
             this.setStrategy(strategy);
             strategy.onPointerDown(e);

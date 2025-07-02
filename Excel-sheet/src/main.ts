@@ -15,7 +15,7 @@ function setupActionButtons() {
     const addColBtn = document.getElementById("add-column");
 
     addRowBtn?.addEventListener("click", () => {
-        const index = sheet.selectedCell?.row ?? sheet.selectedRow;
+        const index = sheet.selectedCell?.row ?? sheet.selectedRows.startRow;
         if (index != null) {
             sheet.addRow(index);
             sheet.redrawVisible(sheet.container.scrollTop, sheet.container.scrollLeft);
@@ -23,7 +23,7 @@ function setupActionButtons() {
     });
 
     addColBtn?.addEventListener("click", () => {
-        const index = sheet.selectedCell?.col ?? sheet.selectedCol;
+        const index = sheet.selectedCell?.col ?? sheet.selectedCols.startCol;
         if (index != null) {
             sheet.addColumn(index);
             sheet.redrawVisible(sheet.container.scrollTop, sheet.container.scrollLeft);

@@ -107,7 +107,7 @@ class ExcelSheet {
         this.canvas = canvas;
         this.container = container;
         this.formularBarInput = formularBarInput;
-        this.generateSheet(jsonData.length + 1, 500, 30, 80, 1, "black");
+        this.generateSheet(100000, 500, 30, 80, 1, "black");
         this.updateCumulativeSizes();
         this.attachEventListners();
         this.selectedCell = { row: 0, col: 0 };
@@ -240,6 +240,7 @@ class ExcelSheet {
         const addressDiv = document.querySelector(".address") as HTMLDivElement;
 
         if (addressDiv) {
+            
             if (cell) {
                 addressDiv.innerHTML = this.columns[cell.col].label + (cell.row + 1);
                 this.formularBarInput.value = this.getOrCreateCell(cell.row, cell.col)?.text || "";
@@ -248,7 +249,7 @@ class ExcelSheet {
                 this.formularBarInput.value = "";
             }
         }
-
+        this.calculateAreaStatus();
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
     }
 
@@ -346,88 +347,205 @@ class ExcelSheet {
         });
 
         document.addEventListener("keydown", (e: KeyboardEvent) => {
-
-            if (e.ctrlKey && e.key === "z") {
-                this.commandManager.undo();
-                return;
-            } else if (e.ctrlKey && e.key === "y") {
-                this.commandManager.redo();
-                return;
-            } else if (e.ctrlKey && e.key === "c") {
-                copySelectionToClipboardBuffer(this);
-            }
-
-            if (e.ctrlKey && e.key === "x") {
-                const cmd = new CutCommand(this);
-                this.commandManager.executeCommand(cmd);
-            }
-
-            if (e.ctrlKey && e.key === "v") {
-                if (this.clipboardBuffer && this.selectedCell) {
-                    const { row, col } = this.selectedCell;
-                    const cmd = new PasteCommand(this, row, col, this.clipboardBuffer);
-                    this.commandManager.executeCommand(cmd);
+            // === Shortcuts: Undo, Redo, Copy, Cut, Paste
+            if (e.ctrlKey) {
+                switch (e.key) {
+                    case "z":
+                        this.commandManager.undo();
+                        return;
+                    case "y":
+                        this.commandManager.redo();
+                        return;
+                    case "c":
+                        copySelectionToClipboardBuffer(this);
+                        return;
+                    case "x": {
+                        const cmd = new CutCommand(this);
+                        this.commandManager.executeCommand(cmd);
+                        return;
+                    }
+                    case "v": {
+                        if (this.clipboardBuffer && this.selectedCell) {
+                            const { row, col } = this.selectedCell;
+                            const cmd = new PasteCommand(this, row, col, this.clipboardBuffer);
+                            this.commandManager.executeCommand(cmd);
+                        }
+                        return;
+                    }
                 }
             }
 
-            this.selectedCols = { startCol: null, endCol: null };
-            this.selectedRows = { startRow: null, endRow: null };
-            this.selectedArea = { startRow: null, startCol: null, endRow: null, endCol: null };
-
+            // === Don't process if input is active
             if (this.isInputOn) return;
 
+            this.selectedCols = { startCol: null, endCol: null };
+            this.selectedRows = { startRow: null, endRow: null };
+
+            // === Ensure we have a selected cell
             if (!this.selectedCell) {
                 this.selectedCell = { row: 0, col: 0 };
-                this.selectedCols = { startCol: null, endCol: null };
-                this.selectedRows = { startRow: null, endRow: null };
-            };
+            }
 
             const { row, col } = this.selectedCell;
             let newRow = row;
             let newCol = col;
 
+
+            const isShiftPressed = e.shiftKey;
+
+            if (isShiftPressed) {
+                // Initialize area if not set
+                if (
+                    !this.selectedArea.startRow ||
+                    !this.selectedArea.startCol ||
+                    this.selectedArea.startRow === null ||
+                    this.selectedArea.startCol === null
+                ) {
+                    this.selectedArea = {
+                        startRow: row,
+                        startCol: col,
+                        endRow: row,
+                        endCol: col,
+                    };
+                }
+
+                if (this.selectedArea.startCol === null || this.selectedArea.endCol === null || this.selectedArea.startRow === null || this.selectedArea.endRow === null) return;
+
+                // Update the area end based on arrow key
+                switch (e.key) {
+                    case "ArrowRight":
+                        newCol = Math.min(this.selectedArea.endCol + 1, this.columns.length - 1);
+                        this.selectedArea.endCol = newCol;
+                        break;
+                    case "ArrowLeft":
+                        newCol = Math.max(this.selectedArea.endCol - 1, 0);
+                        this.selectedArea.endCol = newCol;
+                        break;
+                    case "ArrowDown":
+                        newRow = Math.min(this.selectedArea.endRow + 1, this.rows.length - 1);
+                        this.selectedArea.endRow = newRow;
+                        break;
+                    case "ArrowUp":
+                        newRow = Math.max(this.selectedArea.endRow - 1, 0);
+                        this.selectedArea.endRow = newRow;
+                        break;
+                }
+
+                this.scrollIntoView(newRow, newCol);
+                this.calculateAreaStatus?.();
+                this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
+                return;
+            }
+
+            // === Handle arrow/tab/enter key navigation
+            const areaExists =
+                this.selectedArea.startRow !== null &&
+                this.selectedArea.startCol !== null &&
+                this.selectedArea.endRow !== null &&
+                this.selectedArea.endCol !== null;
+
             switch (e.key) {
                 case "ArrowRight":
+                    if (areaExists) {
+                        this.selectedArea = {
+                            startRow: null,
+                            endRow: null,
+                            startCol: null,
+                            endCol: null,
+                        };
+                    }
                     newCol = Math.min(col + 1, this.columns.length - 1);
                     break;
+
                 case "ArrowLeft":
+                    if (areaExists) {
+                        this.selectedArea = {
+                            startRow: null,
+                            endRow: null,
+                            startCol: null,
+                            endCol: null,
+                        };
+                    }
                     newCol = Math.max(col - 1, 0);
                     break;
+
                 case "ArrowDown":
+                    if (areaExists) {
+                        this.selectedArea = {
+                            startRow: null,
+                            endRow: null,
+                            startCol: null,
+                            endCol: null,
+                        };
+                    }
                     newRow = Math.min(row + 1, this.rows.length - 1);
                     break;
+
                 case "ArrowUp":
+                    if (areaExists) {
+                        this.selectedArea = {
+                            startRow: null,
+                            endRow: null,
+                            startCol: null,
+                            endCol: null,
+                        };
+                    }
                     newRow = Math.max(row - 1, 0);
                     break;
+
+                case "Enter":
+                    if (areaExists) {
+                        const start = this.selectedArea.startRow!;
+                        const end = this.selectedArea.endRow!;
+                        if (e.shiftKey) {
+                            newRow = row > start ? row - 1 : end;
+                        } else {
+                            newRow = row < end ? row + 1 : start;
+                        }
+                        break;
+                    }
+
+                    if (e.shiftKey) {
+                        newRow = Math.max(row - 1, 0);
+                    } else {
+                        newRow = Math.min(row + 1, this.rows.length - 1);
+                    }
+                    break;
+
                 case "Tab":
-                    e.preventDefault();
-                    newCol = col + 1;
+                    e.preventDefault(); // prevent focus shift
+                    if (areaExists) {
+                        const start = this.selectedArea.startCol!;
+                        const end = this.selectedArea.endCol!;
+                        newCol = col < end ? col + 1 : start;
+                        break;
+                    }
+
+                    newCol++;
                     if (newCol >= this.columns.length) {
                         newCol = 0;
                         newRow++;
                     }
-                    if (newRow >= this.rows.length) newRow = this.rows.length - 1;
+                    newRow = Math.min(newRow, this.rows.length - 1);
                     break;
-
             }
+
 
             this.selectedCell = { row: newRow, col: newCol };
 
-            // To change view to Currently selected cell
             this.scrollIntoView(newRow, newCol);
 
             this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
 
-            // === Handle input trigger on key press (A-Z, 0-9, etc.)
             const isPrintableKey =
                 e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
             if (isPrintableKey) {
                 const { row, col } = this.selectedCell;
-                // Show input with initial value as the key pressed
                 this.showInputOverCell(this.getOrCreateCell(row, col), row, col, e.key);
             }
         });
+
 
         window.addEventListener("resize", () => {
             const currentthis = window.devicePixelRatio > 1 ? window.devicePixelRatio : 1;
@@ -536,9 +654,6 @@ class ExcelSheet {
         input.addEventListener("keydown", (e) => {
             if (e.key === "Enter" || e.key === "Escape" || e.key === "Tab") {
                 input.blur();
-                if (e.key === "Enter") {
-                    this.selectedCell = { row: row + 1, col };
-                }
             }
         });
     }
@@ -1033,7 +1148,7 @@ class ExcelSheet {
                 const cell = this.getOrCreateCell(this.selectedCell.row, this.selectedCell.col);
 
                 this.renderAreaStatus({
-                    count: 1,
+                    count: cell.text.trim() !== "" ? 1 : 0,
                     sum: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
                     min: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
                     max: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
@@ -1172,6 +1287,11 @@ class ExcelSheet {
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
     }
 
+    /**
+     * To scroll into view if selected cell is out of view
+     * @param row Row index of the cell
+     * @param col Column index of the cell
+     */
     scrollIntoView(row: number, col: number) {
         const container = this.container;
         const scrollTop = container.scrollTop;
@@ -1179,8 +1299,8 @@ class ExcelSheet {
         const viewWidth = container.clientWidth;
         const viewHeight = container.clientHeight;
 
-        const cellX = this.cumulativeColWidths[col - 1] ?? 0 + this.rowHeaderWidth;
-        const cellY = this.cumulativeRowHeights[row - 1] ?? 0 + this.colHeaderHeight;
+        const cellX = this.cumulativeColWidths[col] ?? 0 + this.rowHeaderWidth;
+        const cellY = this.cumulativeRowHeights[row] ?? 0 + this.colHeaderHeight;
 
         const cellWidth = this.columns[col].width;
         const cellHeight = this.rows[row].height;
@@ -1192,16 +1312,16 @@ class ExcelSheet {
         let newScrollTop = scrollTop;
 
         // Horizontal scroll check
-        if (cellX < scrollLeft) {
-            newScrollLeft = cellX;
+        if (cellX < scrollLeft + headerOffsetX) {
+            newScrollLeft = cellX - headerOffsetX;
         } else if (cellX + cellWidth > scrollLeft + viewWidth - headerOffsetX) {
             newScrollLeft = cellX + cellWidth - viewWidth + headerOffsetX;
         }
 
         // Vertical scroll check
-        if (cellY < scrollTop) {
-            newScrollTop = cellY;
-        } else if (cellY + cellHeight > scrollTop + viewHeight - headerOffsetY) {
+        if (cellY < scrollTop + headerOffsetY) {
+            newScrollTop = cellY - headerOffsetY;
+        } else if (cellY + cellHeight > scrollTop + viewHeight) {
             newScrollTop = cellY + cellHeight - viewHeight + headerOffsetY;
         }
 

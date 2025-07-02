@@ -122,6 +122,7 @@ class SelectionStrategy implements MouseStrategy {
                 endCol: this.sheet.columns.length - 1
             };
             this.sheet.selectedRows = { startRow: Math.min(this.startRow, currentRow), endRow: Math.max(this.startRow, currentRow) };
+            this.sheet.scrollIntoView(this.sheet.selectedArea.endRow!, this.sheet.selectedArea.endCol!);
             this.sheet.calculateAreaStatus();
             this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
             return;
@@ -135,6 +136,7 @@ class SelectionStrategy implements MouseStrategy {
                 endCol: Math.max(this.startCol, currentCol)
             };
             this.sheet.selectedCols = { startCol: Math.min(this.startCol, currentCol), endCol: Math.max(this.startCol, currentCol) };
+             this.sheet.scrollIntoView(this.sheet.selectedArea.endRow!, this.sheet.selectedArea.endCol!);
             this.sheet.calculateAreaStatus();
             this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
             return;
@@ -146,6 +148,14 @@ class SelectionStrategy implements MouseStrategy {
             endRow: currentRow,
             endCol: currentCol
         };
+
+        const addressDiv = document.querySelector(".address") as HTMLDivElement;
+
+        if (this.sheet.selectedArea.startRow !== null && this.sheet.selectedArea.endRow !== null && this.sheet.selectedArea.startCol !== null && this.sheet.selectedArea.endCol !== null && addressDiv !== null) {
+            if (this.sheet.isSelectingArea && this.sheet.selectedArea.startRow !== this.sheet.selectedArea.endRow && this.sheet.selectedArea.startCol !== this.sheet.selectedArea.endCol) {
+                addressDiv.innerHTML = `R${Math.abs(this.sheet.selectedArea.startRow - this.sheet.selectedArea.endRow)} X C${Math.abs(this.sheet.selectedArea.startCol - this.sheet.selectedArea.endCol)} `;
+            }
+        }
 
         this.sheet.scrollIntoView(this.sheet.selectedArea.endRow!, this.sheet.selectedArea.endCol!);
         this.sheet.calculateAreaStatus();
@@ -160,6 +170,17 @@ class SelectionStrategy implements MouseStrategy {
      */
     onPointerUp(_e: MouseEvent): void {
         this.sheet.isSelectingArea = false;
+        const addressDiv = document.querySelector(".address") as HTMLDivElement;
+        const cell = this.sheet.selectedCell;
+        if (addressDiv) {
+            if (cell) {
+                addressDiv.innerHTML = this.sheet.columns[cell.col].label + (cell.row + 1);
+                this.sheet.formularBarInput.value = this.sheet.getOrCreateCell(cell.row, cell.col)?.text || "";
+            } else {
+                addressDiv.innerHTML = "";
+                this.sheet.formularBarInput.value = "";
+            }
+        }
         this.stopAutoScroll();
     }
 
