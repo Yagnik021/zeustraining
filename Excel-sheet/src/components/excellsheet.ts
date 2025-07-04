@@ -5,9 +5,6 @@ import { CommandManager } from "./Commands/CommandManger";
 import { jsonData, headers } from "./jsonData";
 import { EditCellCommand } from "./Commands/EditCommandCell";
 import { MouseHandler } from "./EventHandlers/MouseHandler";
-import { copySelectionToClipboardBuffer } from "./Commands/CopyCommad";
-import { CutCommand } from "./Commands/CutCommand";
-import { PasteCommand } from "./Commands/PastCommand";
 import { KeyDownHandler } from "./EventHandlers/KeydownHandler";
 
 
@@ -250,8 +247,8 @@ class ExcelSheet {
                 this.formularBarInput.value = "";
             }
         }
-        this.calculateAreaStatus();
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
+        this.calculateAreaStatus();
     }
 
     /**
@@ -803,7 +800,7 @@ class ExcelSheet {
      */
     drawRowHeaders(startRow: number, endRow: number, scrollTop: number) {
         // === Draw row header background
-
+        let isEntierGridIsSelected = this.selectedArea?.startRow === 0 && this.selectedArea?.endRow === this.rows.length - 1 && this.selectedArea?.startCol === 0 && this.selectedArea?.endCol === this.columns.length - 1;
         for (let row = startRow; row <= endRow; row++) {
             const y = this.colHeaderHeight + (this.cumulativeRowHeights[row - 1] ?? 0) - scrollTop;
             const height = this.rows[row].height;
@@ -823,7 +820,9 @@ class ExcelSheet {
                 );
 
             // === Fill background
-            if ((isSelectedCellRow || isInSelectedArea) && !isSelectedRow) {
+            if (isEntierGridIsSelected) {
+                this.ctx.fillStyle = "#137E43";
+            } else if ((isSelectedCellRow || isInSelectedArea) && !isSelectedRow) {
                 this.ctx.fillStyle = "#CAEAD8";
             } else if (isSelectedRow) {
                 this.ctx.fillStyle = "#137E43";
@@ -857,7 +856,7 @@ class ExcelSheet {
             }
 
             // === Draw row number
-            this.ctx.fillStyle = isSelectedRow ? "white" : "black";
+            this.ctx.fillStyle = isSelectedRow || isEntierGridIsSelected ? "white" : "black";
             this.ctx.textAlign = "left";
             this.ctx.textBaseline = "middle";
 
@@ -877,6 +876,22 @@ class ExcelSheet {
         this.ctx.strokeStyle = "#ccc";
         this.ctx.fillStyle = "white";
         this.ctx.fillRect(0.5, 0.5, this.rowHeaderWidth, this.colHeaderHeight);
+
+        this.ctx.fillStyle = "#B7B7B7";
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.rowHeaderWidth - 4, this.colHeaderHeight - 4);
+        this.ctx.lineTo(this.rowHeaderWidth - 4, this.colHeaderHeight - 16);
+        this.ctx.lineTo(this.rowHeaderWidth - 16, this.colHeaderHeight - 4);
+        this.ctx.fill();
+
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = "#B7B7B7";
+        this.ctx.lineWidth = 2;
+        this.ctx.moveTo(this.rowHeaderWidth - 0.5, this.colHeaderHeight - 0.5);
+        this.ctx.lineTo(this.rowHeaderWidth - 0.5, 0);
+        this.ctx.moveTo(this.rowHeaderWidth - 0.5, this.colHeaderHeight - 0.5);
+        this.ctx.lineTo(0, this.colHeaderHeight - 0.5);
+        this.ctx.stroke();
     }
 
     /**
@@ -886,6 +901,7 @@ class ExcelSheet {
      * @param scrollLeft Current scroll left of the grid
      */
     drawColumnHeaders(startCol: number, endCol: number, scrollLeft: number) {
+        let isEntierGridIsSelected = this.selectedArea?.startRow === 0 && this.selectedArea?.endRow === this.rows.length - 1 && this.selectedArea?.startCol === 0 && this.selectedArea?.endCol === this.columns.length - 1;
         this.ctx.fillStyle = "black";
         for (let col = startCol; col <= endCol; col++) {
             const x = this.rowHeaderWidth + (this.cumulativeColWidths[col - 1] ?? 0) - scrollLeft;
@@ -907,7 +923,9 @@ class ExcelSheet {
             }
 
             // === Set background fill color
-            if ((isSelectedCellCol || isInSelectedArea) && !isFullySelectedCol) {
+            if (isEntierGridIsSelected) {
+                this.ctx.fillStyle = "#137E43";
+            } else if ((isSelectedCellCol || isInSelectedArea) && !isFullySelectedCol) {
                 this.ctx.fillStyle = "#CAEAD8";
             } else if (isFullySelectedCol) {
                 this.ctx.fillStyle = "#137E43";
@@ -947,7 +965,7 @@ class ExcelSheet {
             }
 
             // === Draw column label text
-            this.ctx.fillStyle = isFullySelectedCol ? "white" : "black";
+            this.ctx.fillStyle = (isFullySelectedCol || isEntierGridIsSelected) ? "white" : "black";
             this.ctx.textAlign = "center";
             this.ctx.textBaseline = "middle";
 
@@ -1132,7 +1150,7 @@ class ExcelSheet {
         this.sheetWidth += addedWidth;
         virtualArea.style.width = `${this.sheetWidth}px`;
 
-        
+
         this.updateCumulativeSizes();
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
     }

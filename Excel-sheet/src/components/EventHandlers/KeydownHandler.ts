@@ -5,14 +5,27 @@ import { CutCommand } from "../Commands/CutCommand";
 import { PasteCommand } from "../Commands/PastCommand";
 import type { ExcelSheet } from "../Excellsheet";
 
+/**
+ * Handles keyboard events and executes corresponding commands.
+ * @param sheet The ExcelSheet instance.
+ */
 export class KeyDownHandler {
     private sheet: ExcelSheet;
 
+    /**
+     * Constructor.
+     * @param sheet The ExcelSheet instance.
+     */
     constructor(sheet: ExcelSheet) {
         this.sheet = sheet;
         document.addEventListener("keydown", this.onKeyDown.bind(this));
     }
 
+
+    /**
+     * On keydown event
+     * @param e keyboard event
+     */
     private onKeyDown(e: KeyboardEvent) {
         const sheet = this.sheet;
 
@@ -32,7 +45,7 @@ export class KeyDownHandler {
             }
         }
 
-        if (sheet.isInputOn) return;
+        if (sheet.isInputOn && e.key !== "Enter" && e.key !== "Escape" && e.key !== "Tab") return;
 
         if (!e.ctrlKey && !e.shiftKey) {
             sheet.selectedRows.length = 0;
@@ -50,7 +63,7 @@ export class KeyDownHandler {
         const area = sheet.selectedArea;
 
         if (isShift) {
-            this.handleShiftSelection(e, row, col, newRow, newCol);
+            this.handleShiftSelection(e, row, col, newRow, newCol, area);
             return;
         }
 
@@ -63,13 +76,21 @@ export class KeyDownHandler {
         }
     }
 
-    private handleShiftSelection(e: KeyboardEvent, row: number, col: number, newRow: number, newCol: number) {
+    /**
+     * Function to handle shift selection
+     * @param e Keyboard event
+     * @param row Current row
+     * @param col Current column
+     * @param newRow New row index
+     * @param newCol New column index
+     */
+    private handleShiftSelection(e: KeyboardEvent, row: number, col: number, newRow: number, newCol: number, area: { startRow: number | null, endRow: number | null, startCol: number | null, endCol: number | null } = { startRow: null, endRow: null, startCol: null, endCol: null }) {
         const s = this.sheet;
-
-        if (s.selectedArea.startRow === null || s.selectedArea.startCol === null) {
-            s.selectedArea = { startRow: row, startCol: col, endRow: row, endCol: col };
+        const clearArea = () => s.selectedArea = { startRow: null, endRow: null, startCol: null, endCol: null };
+        let isAreaExists = s.selectedArea.startRow !== null && s.selectedArea.startCol !== null && s.selectedArea.endRow !== null && s.selectedArea.endCol !== null;
+        if (!isAreaExists) {
+            s.selectedArea = { startRow: row, startCol: col, endRow: row, endCol: col };   
         }
-
         switch (e.key) {
             case "ArrowRight":
                 newCol = Math.min(s.selectedArea.endCol! + 1, s.columns.length - 1);
@@ -87,19 +108,50 @@ export class KeyDownHandler {
                 newRow = Math.max(s.selectedArea.endRow! - 1, 0);
                 s.selectedArea.endRow = newRow;
                 break;
+            case "Enter":
+                if (isAreaExists && area.startRow !== area.endRow && area.startCol !== area.endCol) {
+                    const start = area.startRow!, end = area.endRow!;
+                    newRow = row > start ? row - 1 : end;
+                    if (row === start) newCol = col - 1 >= area.startCol! ? col - 1 : area.endCol!;
+                    s.selectedCell = { row: newRow, col: newCol };
+                } else {
+                    s.selectedCell = { row: Math.max(row - 1, 0), col: col }
+                    clearArea();
+                }
+                break;
+            case "tab":
+                if (isAreaExists && area.startRow !== area.endRow && area.startCol !== area.endCol) {
+                    const start = area.startCol!, end = area.endCol!;
+                    newCol = col > start ? col - 1 : end;
+                    if (col === start) newRow = row - 1 >= area.startRow! ? row - 1 : area.endRow!;
+                    s.selectedCell = { row: newRow, col: newCol };
+                } else {
+                    s.selectedCell = { row: row, col: Math.max(col - 1, 0) }
+                    clearArea();
+                }
+                break;
             default: return;
         }
 
         s.scrollIntoView(newRow, newCol);
-        s.calculateAreaStatus?.();
         s.redrawVisible(s.container.scrollTop, s.container.scrollLeft);
+        s.calculateAreaStatus();
     }
 
+    /**
+     * To handle navigation using arrow keys
+     * @param e Keyboard event
+     * @param row Current row index
+     * @param col Current column index
+     * @param area Selected area object
+     */
     private handleNavigation(e: KeyboardEvent, row: number, col: number, area: { startRow: number | null, endRow: number | null, startCol: number | null, endCol: number | null }) {
         const s = this.sheet;
         let newRow = row, newCol = col;
         const clearArea = () => s.selectedArea = { startRow: null, endRow: null, startCol: null, endCol: null };
-        const areaExists = area.startRow !== null;
+        const areaExists = area.startRow !== null && area.endRow !== null && area.startCol !== null && area.endCol !== null && area.startRow !== area.endRow && area.startCol !== area.endCol;
+
+        if(!areaExists) clearArea();
 
         switch (e.key) {
             case "ArrowRight":
@@ -119,7 +171,7 @@ export class KeyDownHandler {
                 newRow = Math.max(row - 1, 0);
                 break;
             case "Enter":
-                if (areaExists) {
+                if (areaExists) {                    
                     const start = area.startRow!, end = area.endRow!;
                     if (e.shiftKey) newRow = row > start ? row - 1 : end;
                     else {
@@ -127,12 +179,7 @@ export class KeyDownHandler {
                         if (row === end) newCol = col + 1 <= area.endCol! ? col + 1 : area.startCol!;
                     }
                 } else {
-                    newRow++;
-                    if (newRow >= s.rows.length) {
-                        newRow = 0;
-                        newCol++;
-                    }
-                    newCol = Math.min(newCol, s.columns.length - 1);
+                    newRow = Math.min(row + 1, s.rows.length - 1);
                 }
                 break;
             case "Tab":

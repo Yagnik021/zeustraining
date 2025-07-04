@@ -48,11 +48,22 @@ class SelectionStrategy implements MouseStrategy {
         this.startRow = this.sheet.getRowIndexFromY(logicalY);
         this.startCol = this.sheet.getColIndexFromX(logicalX);
 
+        if (rowHeaderBuffer < 0 && colHeaderBuffer < 0 && Math.abs(rowHeaderBuffer) <= this.sheet.rowHeaderWidth && Math.abs(colHeaderBuffer) <= this.sheet.colHeaderHeight) {
+            this.sheet.selectedRows.splice(0, this.sheet.selectedRows.length);
+            this.sheet.selectedCols.splice(0, this.sheet.selectedCols.length);
+            this.sheet.selectedArea = {
+                startRow: 0,
+                startCol: 0,
+                endRow: this.sheet.rows.length - 1,
+                endCol: this.sheet.columns.length - 1
+            };
+            this.sheet.selectedCell = { row: this.startRow, col: this.startCol };
+            this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
+            return;
+        }
 
         if (rowHeaderBuffer < 0 && colHeaderBuffer > 0 && !outOfcanvas) {
             if (e.ctrlKey) {
-                console.log("test");
-
                 if (this.sheet.selectedRows.indexOf(this.startRow) === -1) {
                     this.sheet.selectedRows.push(this.startRow);
                 }
@@ -71,8 +82,8 @@ class SelectionStrategy implements MouseStrategy {
                 endCol: this.sheet.columns.length - 1
             };
 
-            this.sheet.calculateAreaStatus();
             this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
+            this.sheet.calculateAreaStatus();
             this.isRowSelection = true;
 
             return;
@@ -99,8 +110,8 @@ class SelectionStrategy implements MouseStrategy {
                 endCol: this.startCol
             };
 
-            this.sheet.calculateAreaStatus();
             this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
+            this.sheet.calculateAreaStatus();
             this.isColSelection = true;
 
             return;
@@ -121,8 +132,6 @@ class SelectionStrategy implements MouseStrategy {
             endCol: null
         };
         this.sheet.selectedCell = { row: this.startRow, col: this.startCol };
-
-        this.sheet.calculateAreaStatus();
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
 
@@ -145,18 +154,11 @@ class SelectionStrategy implements MouseStrategy {
 
         const currentRow = this.sheet.getRowIndexFromY(y);
         const currentCol = this.sheet.getColIndexFromX(x);
-        // Use these for area calculations
-        const rowHeaderBuffer = rawX - this.sheet.rowHeaderWidth;
-        const colHeaderBuffer = rawY - this.sheet.colHeaderHeight;
-
-        const outOfcanvas = rawX > this.sheet.canvas.clientWidth || rawY > this.sheet.canvas.clientHeight;
-
         if (this.isRowSelection) {
             const start = Math.min(this.startRow, currentRow);
             const end = Math.max(this.startRow, currentRow);
 
             if (this.ctrlKeyPressed) {
-                // Ctrl + drag: accumulate rows
                 const newRows = [];
                 for (let i = start; i <= end; i++) {
                     if (!this.sheet.selectedRows.includes(i)) {
@@ -179,12 +181,7 @@ class SelectionStrategy implements MouseStrategy {
                 endCol: this.sheet.columns.length - 1
             };
 
-            if (colHeaderBuffer < 0) {
-                this.sheet.scrollIntoView(this.sheet.selectedArea.startRow!, 0);
-            } else {
-                this.sheet.scrollIntoView(this.sheet.selectedArea.endRow!, 0);
-            }
-
+            this.startAutoScroll(e);
             this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
             return;
         }
@@ -204,7 +201,6 @@ class SelectionStrategy implements MouseStrategy {
                 endCol
             };
 
-            // If Ctrl is pressed, append range
             if (e.ctrlKey) {
                 for (let col = startCol; col <= endCol; col++) {
                     if (!this.sheet.selectedCols.includes(col)) {
@@ -218,13 +214,7 @@ class SelectionStrategy implements MouseStrategy {
                 }
             }
 
-            // Scroll to selected column
-            if (rowHeaderBuffer < 0) {
-                this.sheet.scrollIntoView(0, startCol);
-            } else {
-                this.sheet.scrollIntoView(0, endCol);
-            }
-
+            this.startAutoScroll(e);
             this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
             return;
         }
@@ -239,13 +229,20 @@ class SelectionStrategy implements MouseStrategy {
 
         const addressDiv = document.querySelector(".address") as HTMLDivElement;
 
+
         if (this.sheet.selectedArea.startRow !== null && this.sheet.selectedArea.endRow !== null && this.sheet.selectedArea.startCol !== null && this.sheet.selectedArea.endCol !== null && addressDiv !== null) {
-            if (this.sheet.isSelectingArea && this.sheet.selectedArea.startRow !== this.sheet.selectedArea.endRow && this.sheet.selectedArea.startCol !== this.sheet.selectedArea.endCol) {
-                addressDiv.innerHTML = `R${Math.abs(this.sheet.selectedArea.startRow - this.sheet.selectedArea.endRow + 1)} X C${Math.abs(this.sheet.selectedArea.startCol - this.sheet.selectedArea.endCol + 1)} `;
+            var startRow = Math.min(this.sheet.selectedArea.startRow, this.sheet.selectedArea.endRow);
+            var endRow = Math.max(this.sheet.selectedArea.startRow, this.sheet.selectedArea.endRow);
+            var startCol = Math.min(this.sheet.selectedArea.startCol, this.sheet.selectedArea.endCol);
+            var endCol = Math.max(this.sheet.selectedArea.startCol, this.sheet.selectedArea.endCol);
+
+            if (startRow !== endRow || startCol !== endCol) {
+                addressDiv.innerHTML = `R${endRow - startRow + 1} X C${endCol - startCol + 1}`;
+            } else {
+                addressDiv.innerHTML = this.sheet.columns[currentCol].label + (currentRow + 1);
             }
         }
 
-        this.sheet.scrollIntoView(this.sheet.selectedArea.endRow!, this.sheet.selectedArea.endCol!);
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
 
         this.startAutoScroll(e);
@@ -256,7 +253,7 @@ class SelectionStrategy implements MouseStrategy {
      * @param e : Pointer event
      */
     onPointerUp(_e: MouseEvent): void {
-        this.sheet.isSelectingArea = false;
+
         const addressDiv = document.querySelector(".address") as HTMLDivElement;
         const cell = this.sheet.selectedCell;
         if (addressDiv) {
@@ -268,46 +265,128 @@ class SelectionStrategy implements MouseStrategy {
                 this.sheet.formularBarInput.value = "";
             }
         }
-        this.sheet.calculateAreaStatus();
+        if (this.sheet.isSelectingArea) {
+            this.sheet.calculateAreaStatus();
+        }
+        this.sheet.isSelectingArea = false;
         this.stopAutoScroll();
     }
 
+    /**
+     * Function to start auto scrolling
+     * @param e Mouse event
+     */
     private startAutoScroll(e: MouseEvent): void {
         const container = this.sheet.container;
 
         this.stopAutoScroll(); // clear previous if any
+        const rect = container.getBoundingClientRect();
+        const dpr = this.sheet.dpr;
+        const rawX = (e.clientX - rect.left) / dpr;
+        const rawY = (e.clientY - rect.top) / dpr;
+
+        const x = rawX + this.sheet.container.scrollLeft - this.sheet.rowHeaderWidth;
+        const y = rawY + this.sheet.container.scrollTop - this.sheet.colHeaderHeight;
+
+        let currentRow = this.sheet.getRowIndexFromY(y);
+        let currentCol = this.sheet.getColIndexFromX(x);
 
         this.autoScrollInterval = window.setInterval(() => {
             const rect = container.getBoundingClientRect();
             const buffer = 20; // how far from edge to start scrolling
-            const scrollStep = 30; // how fast to scroll
+            const scrollStep = 24; // how fast to scroll
 
             let scrolled = false;
 
             if (e.clientY < rect.top + buffer) {
-                container.scrollTop -= scrollStep;
+                let scrollTop = container.scrollTop -= scrollStep;
+                currentRow = this.sheet.getRowIndexFromY(scrollTop);
                 scrolled = true;
             } else if (e.clientY > rect.bottom - buffer) {
-                container.scrollTop += scrollStep;
+                let scrollTop = (container.scrollTop += scrollStep) + container.clientHeight - this.sheet.colHeaderHeight;
+                currentRow = this.sheet.getRowIndexFromY(scrollTop);
                 scrolled = true;
             }
 
             if (e.clientX < rect.left + buffer) {
-                container.scrollLeft -= scrollStep;
+                let scrollLeft = container.scrollLeft -= scrollStep;
+                currentCol = this.sheet.getColIndexFromX(scrollLeft);
                 scrolled = true;
             } else if (e.clientX > rect.right - buffer) {
-                container.scrollLeft += scrollStep;
+                let scrollLeft = (container.scrollLeft += scrollStep) + container.clientWidth - this.sheet.rowHeaderWidth;
+                currentCol = this.sheet.getColIndexFromX(scrollLeft);
                 scrolled = true;
             }
 
             if (scrolled) {
-                // Update selection if scrolling happened
+                if (this.isRowSelection) {
+                    const start = Math.min(this.startRow, currentRow);
+                    const end = Math.max(this.startRow, currentRow);
+
+                    if (this.ctrlKeyPressed) {
+                        const newRows = [];
+                        for (let i = start; i <= end; i++) {
+                            if (!this.sheet.selectedRows.includes(i)) {
+                                newRows.push(i);
+                            }
+                        }
+                        this.sheet.selectedRows.push(...newRows);
+                    } else {
+                        // Normal drag: select range
+                        this.sheet.selectedRows = [];
+                        for (let i = start; i <= end; i++) {
+                            this.sheet.selectedRows.push(i);
+                        }
+                    }
+
+                    this.sheet.selectedArea = {
+                        startRow: start,
+                        endRow: end,
+                        startCol: 0,
+                        endCol: this.sheet.columns.length - 1
+                    };
+                } else if (this.isColSelection) {
+                    const fromCol = this.startCol;
+                    const toCol = currentCol;
+
+                    const startCol = Math.min(fromCol, toCol);
+                    const endCol = Math.max(fromCol, toCol);
+
+                    this.sheet.selectedArea = {
+                        startRow: 0,
+                        startCol,
+                        endRow: this.sheet.rows.length - 1,
+                        endCol
+                    };
+
+                    if (e.ctrlKey) {
+                        for (let col = startCol; col <= endCol; col++) {
+                            if (!this.sheet.selectedCols.includes(col)) {
+                                this.sheet.selectedCols.push(col);
+                            }
+                        }
+                    } else {
+                        this.sheet.selectedCols = [];
+                        for (let col = startCol; col <= endCol; col++) {
+                            this.sheet.selectedCols.push(col);
+                        }
+                    }
+                } else {
+                    this.sheet.selectedArea = {
+                        startRow: this.startRow,
+                        startCol: this.startCol,
+                        endRow: currentRow,
+                        endCol: currentCol
+                    };
+                }
                 this.sheet.redrawVisible(container.scrollTop, container.scrollLeft);
-                this.sheet.calculateAreaStatus(); // optional: update highlights
             }
-        }, 30); // ~33 fps
+        }, 30); 
     }
 
+    /**
+     * Function to stop auto scrolling
+     */
     private stopAutoScroll() {
         if (this.autoScrollInterval !== null) {
             clearInterval(this.autoScrollInterval);
