@@ -8,6 +8,7 @@ import { MouseHandler } from "./EventHandlers/MouseHandler";
 import { copySelectionToClipboardBuffer } from "./Commands/CopyCommad";
 import { CutCommand } from "./Commands/CutCommand";
 import { PasteCommand } from "./Commands/PastCommand";
+import { KeyDownHandler } from "./EventHandlers/KeydownHandler";
 
 
 type DataRow = {
@@ -41,7 +42,7 @@ const colIndexToField: Record<number, keyof DataRow> = {
  *
  * @member rows - An array of Row objects representing the rows in the Excel sheet.
  * @member columns - An array of Column objects representing the columns in the Excel sheet.
- * @member cells - A 2D array of Cell objects representing the cells in the Excel sheet.
+ * @member cells - A 2D array of Cell objects representing the cells in the Excel sheet. * 
  * @member sheetWidth - The total width of the Excel sheet in pixels.
  * @member sheetHeight - The total height of the Excel sheet in pixels.
  * @member isResizing - Indicates whether a resize operation is currently in progress.
@@ -84,8 +85,8 @@ class ExcelSheet {
     public sheetWidth = 0;
     public sheetHeight = 0;
     public commandManager: CommandManager;
-    public selectedRows: { startRow: number | null; endRow: number | null } = { startRow: null, endRow: null };
-    public selectedCols: { startCol: number | null; endCol: number | null } = { startCol: null, endCol: null };
+    public selectedRows: number[] = [];
+    public selectedCols: number[] = [];
     public selectedArea: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null } = { startRow: null, startCol: null, endRow: null, endCol: null };
     public container: HTMLElement;
     public formularBarInput: HTMLInputElement;
@@ -112,10 +113,10 @@ class ExcelSheet {
         this.attachEventListners();
         this.selectedCell = { row: 0, col: 0 };
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-
-        this.mouseHandler = new MouseHandler(this);
         this.renderAreaStatus({ count: 0, sum: null, min: null, max: null, avg: null });
+        this.mouseHandler = new MouseHandler(this);
         this.commandManager = new CommandManager();
+        new KeyDownHandler(this);
     }
 
 
@@ -240,7 +241,7 @@ class ExcelSheet {
         const addressDiv = document.querySelector(".address") as HTMLDivElement;
 
         if (addressDiv) {
-            
+
             if (cell) {
                 addressDiv.innerHTML = this.columns[cell.col].label + (cell.row + 1);
                 this.formularBarInput.value = this.getOrCreateCell(cell.row, cell.col)?.text || "";
@@ -345,207 +346,6 @@ class ExcelSheet {
                 this.showInputOverCell(cell, rowIndex, colIndex);
             }
         });
-
-        document.addEventListener("keydown", (e: KeyboardEvent) => {
-            // === Shortcuts: Undo, Redo, Copy, Cut, Paste
-            if (e.ctrlKey) {
-                switch (e.key) {
-                    case "z":
-                        this.commandManager.undo();
-                        return;
-                    case "y":
-                        this.commandManager.redo();
-                        return;
-                    case "c":
-                        copySelectionToClipboardBuffer(this);
-                        return;
-                    case "x": {
-                        const cmd = new CutCommand(this);
-                        this.commandManager.executeCommand(cmd);
-                        return;
-                    }
-                    case "v": {
-                        if (this.clipboardBuffer && this.selectedCell) {
-                            const { row, col } = this.selectedCell;
-                            const cmd = new PasteCommand(this, row, col, this.clipboardBuffer);
-                            this.commandManager.executeCommand(cmd);
-                        }
-                        return;
-                    }
-                }
-            }
-
-            // === Don't process if input is active
-            if (this.isInputOn) return;
-
-            this.selectedCols = { startCol: null, endCol: null };
-            this.selectedRows = { startRow: null, endRow: null };
-
-            // === Ensure we have a selected cell
-            if (!this.selectedCell) {
-                this.selectedCell = { row: 0, col: 0 };
-            }
-
-            const { row, col } = this.selectedCell;
-            let newRow = row;
-            let newCol = col;
-
-
-            const isShiftPressed = e.shiftKey;
-
-            if (isShiftPressed) {
-                // Initialize area if not set
-                if (
-                    !this.selectedArea.startRow ||
-                    !this.selectedArea.startCol ||
-                    this.selectedArea.startRow === null ||
-                    this.selectedArea.startCol === null
-                ) {
-                    this.selectedArea = {
-                        startRow: row,
-                        startCol: col,
-                        endRow: row,
-                        endCol: col,
-                    };
-                }
-
-                if (this.selectedArea.startCol === null || this.selectedArea.endCol === null || this.selectedArea.startRow === null || this.selectedArea.endRow === null) return;
-
-                // Update the area end based on arrow key
-                switch (e.key) {
-                    case "ArrowRight":
-                        newCol = Math.min(this.selectedArea.endCol + 1, this.columns.length - 1);
-                        this.selectedArea.endCol = newCol;
-                        break;
-                    case "ArrowLeft":
-                        newCol = Math.max(this.selectedArea.endCol - 1, 0);
-                        this.selectedArea.endCol = newCol;
-                        break;
-                    case "ArrowDown":
-                        newRow = Math.min(this.selectedArea.endRow + 1, this.rows.length - 1);
-                        this.selectedArea.endRow = newRow;
-                        break;
-                    case "ArrowUp":
-                        newRow = Math.max(this.selectedArea.endRow - 1, 0);
-                        this.selectedArea.endRow = newRow;
-                        break;
-                }
-
-                this.scrollIntoView(newRow, newCol);
-                this.calculateAreaStatus?.();
-                this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-                return;
-            }
-
-            // === Handle arrow/tab/enter key navigation
-            const areaExists =
-                this.selectedArea.startRow !== null &&
-                this.selectedArea.startCol !== null &&
-                this.selectedArea.endRow !== null &&
-                this.selectedArea.endCol !== null;
-
-            switch (e.key) {
-                case "ArrowRight":
-                    if (areaExists) {
-                        this.selectedArea = {
-                            startRow: null,
-                            endRow: null,
-                            startCol: null,
-                            endCol: null,
-                        };
-                    }
-                    newCol = Math.min(col + 1, this.columns.length - 1);
-                    break;
-
-                case "ArrowLeft":
-                    if (areaExists) {
-                        this.selectedArea = {
-                            startRow: null,
-                            endRow: null,
-                            startCol: null,
-                            endCol: null,
-                        };
-                    }
-                    newCol = Math.max(col - 1, 0);
-                    break;
-
-                case "ArrowDown":
-                    if (areaExists) {
-                        this.selectedArea = {
-                            startRow: null,
-                            endRow: null,
-                            startCol: null,
-                            endCol: null,
-                        };
-                    }
-                    newRow = Math.min(row + 1, this.rows.length - 1);
-                    break;
-
-                case "ArrowUp":
-                    if (areaExists) {
-                        this.selectedArea = {
-                            startRow: null,
-                            endRow: null,
-                            startCol: null,
-                            endCol: null,
-                        };
-                    }
-                    newRow = Math.max(row - 1, 0);
-                    break;
-
-                case "Enter":
-                    if (areaExists) {
-                        const start = this.selectedArea.startRow!;
-                        const end = this.selectedArea.endRow!;
-                        if (e.shiftKey) {
-                            newRow = row > start ? row - 1 : end;
-                        } else {
-                            newRow = row < end ? row + 1 : start;
-                        }
-                        break;
-                    }
-
-                    if (e.shiftKey) {
-                        newRow = Math.max(row - 1, 0);
-                    } else {
-                        newRow = Math.min(row + 1, this.rows.length - 1);
-                    }
-                    break;
-
-                case "Tab":
-                    e.preventDefault(); // prevent focus shift
-                    if (areaExists) {
-                        const start = this.selectedArea.startCol!;
-                        const end = this.selectedArea.endCol!;
-                        newCol = col < end ? col + 1 : start;
-                        break;
-                    }
-
-                    newCol++;
-                    if (newCol >= this.columns.length) {
-                        newCol = 0;
-                        newRow++;
-                    }
-                    newRow = Math.min(newRow, this.rows.length - 1);
-                    break;
-            }
-
-
-            this.selectedCell = { row: newRow, col: newCol };
-
-            this.scrollIntoView(newRow, newCol);
-
-            this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-
-            const isPrintableKey =
-                e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-
-            if (isPrintableKey) {
-                const { row, col } = this.selectedCell;
-                this.showInputOverCell(this.getOrCreateCell(row, col), row, col, e.key);
-            }
-        });
-
 
         window.addEventListener("resize", () => {
             const currentthis = window.devicePixelRatio > 1 ? window.devicePixelRatio : 1;
@@ -692,6 +492,27 @@ class ExcelSheet {
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+        if (this.selectedRows.length > 0) {
+            this.ctx.fillStyle = "#E8F2EC";
+            for (let row = startRow; row <= endRow; row++) {
+                if (this.selectedRows.indexOf(row) === -1) continue;
+                const y = (this.cumulativeRowHeights[row - 1] ?? 0) - scrollTop + this.colHeaderHeight;
+                const rowHeight = this.rows[row].height;
+                this.ctx.fillRect(this.rowHeaderWidth, y, this.cumulativeColWidths[endCol] - this.cumulativeColWidths[startCol], rowHeight);
+            }
+        }
+
+        if (this.selectedCols.length > 0) {
+            this.ctx.fillStyle = "#E8F2EC";
+            for (let col = startCol; col <= endCol; col++) {
+                if (this.selectedCols.indexOf(col) === -1) continue;
+                const x = (this.cumulativeColWidths[col - 1] ?? 0) - scrollLeft + this.rowHeaderWidth;
+                const colWidth = this.columns[col].width;
+                this.ctx.fillRect(x, this.colHeaderHeight, colWidth, this.cumulativeRowHeights[endRow] - this.cumulativeRowHeights[startRow]);
+            }
+        }
+
+
         // === Clip to scrollable canvas area
         this.ctx.save();
         this.ctx.beginPath();
@@ -760,9 +581,9 @@ class ExcelSheet {
         }
 
         if (!isNaN(Number(text))) {
-            this.ctx.fillText(text, x + (width / 2) - (metrics.width / 2) - padding, y + (height / 2) - 7);
+            this.ctx.fillText(text, x + (width / 2) - (metrics.width / 2) - padding, y + (height / 2) - 13);
         } else {
-            this.ctx.fillText(text, x + padding - (width / 2) + (metrics.width / 2), y + (height / 2) - 7);
+            this.ctx.fillText(text, x + padding - (width / 2) + (metrics.width / 2), y + (height / 2) - 13);
         }
     }
 
@@ -829,6 +650,7 @@ class ExcelSheet {
     highlightSelectedArea(startRow: number, endRow: number, startCol: number, endCol: number, scrollTop: number, scrollLeft: number) {
 
         if (this.selectedArea.startRow === null || this.selectedArea.startCol === null || this.selectedArea.endRow === null || this.selectedArea.endCol === null) return;
+
 
         const startAreaRow = Math.min(this.selectedArea.startRow, this.selectedArea.endRow);
         const endAreaRow = Math.max(this.selectedArea.startRow, this.selectedArea.endRow);
@@ -923,6 +745,8 @@ class ExcelSheet {
                 this.ctx.lineWidth = 1;
             }
         }
+
+
     }
 
     /**
@@ -985,8 +809,8 @@ class ExcelSheet {
             const height = this.rows[row].height;
 
             let isSelectedRow = false;
-            if (this.selectedRows.endRow !== null && this.selectedRows.startRow !== null) {
-                isSelectedRow = this.selectedRows.startRow <= row && this.selectedRows.endRow >= row;
+            if (this.selectedRows.length > 0) {
+                isSelectedRow = this.selectedRows.indexOf(row) !== -1;
             }
             const isSelectedCellRow = this.selectedCell?.row === row;
 
@@ -1013,7 +837,7 @@ class ExcelSheet {
             this.ctx.lineWidth = isSelectedRow ? 2 : 1;
             this.ctx.strokeRect(0.5, y + 0.5, this.rowHeaderWidth, height);
 
-            if (isSelectedRow && this.selectedRows.endRow !== row) {
+            if (isSelectedRow) {
                 this.ctx.beginPath();
                 this.ctx.strokeStyle = "white";
                 this.ctx.lineWidth = 3;
@@ -1078,8 +902,8 @@ class ExcelSheet {
             const isSelectedCellCol = this.selectedCell?.col === col;
 
             let isFullySelectedCol = false;
-            if (this.selectedCols.startCol !== null && this.selectedCols.endCol !== null) {
-                isFullySelectedCol = this.selectedCols.startCol <= col && this.selectedCols.endCol >= col;
+            if (this.selectedCols.length > 0) {
+                isFullySelectedCol = this.selectedCols.indexOf(col) !== -1;
             }
 
             // === Set background fill color
@@ -1113,7 +937,7 @@ class ExcelSheet {
                 this.ctx.stroke();
             }
 
-            if (isFullySelectedCol && this.selectedCols.endCol !== col) {
+            if (isFullySelectedCol) {
                 this.ctx.strokeStyle = "white";
                 this.ctx.lineWidth = 3;
                 this.ctx.beginPath();
@@ -1141,49 +965,74 @@ class ExcelSheet {
      * To calculate Selected area status like count, sum, min, max, avg
      */
     calculateAreaStatus() {
+        try {
+            const { startRow, endRow, startCol, endCol } = this.selectedArea;
 
-        const { startRow, endRow, startCol, endCol } = this.selectedArea;
-        if (startRow === null || endRow === null || startCol === null || endCol === null) {
-            if (this.selectedCell?.row && this.selectedCell.col) {
-                const cell = this.getOrCreateCell(this.selectedCell.row, this.selectedCell.col);
+            // If area is not selected, fallback to selectedCell
+            if (
+                startRow === null ||
+                endRow === null ||
+                startCol === null ||
+                endCol === null
+            ) {
+                if (this.selectedCell) {
+                    const cell = this.cells.get(this.selectedCell.row)?.get(this.selectedCell.col);
+                    const value = cell?.text?.trim() ?? "";
 
-                this.renderAreaStatus({
-                    count: cell.text.trim() !== "" ? 1 : 0,
-                    sum: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
-                    min: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
-                    max: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null,
-                    avg: !isNaN(parseFloat(cell.text)) ? parseFloat(cell.text) : null
-                });
+                    const num = parseFloat(value);
+                    const isNum = !isNaN(num);
+
+                    this.renderAreaStatus({
+                        count: value !== "" ? 1 : 0,
+                        sum: isNum ? num : null,
+                        min: isNum ? num : null,
+                        max: isNum ? num : null,
+                        avg: isNum ? num : null
+                    });
+                }
+                return;
             }
-            return;
-        }
-        let numericValues: number[] = [];
-        let totalCount = 0;
 
-        for (let row = Math.min(startRow, endRow); row <= Math.max(startRow, endRow); row++) {
-            for (let col = Math.min(startCol, endCol); col <= Math.max(startCol, endCol); col++) {
-                const cell = this.getOrCreateCell(row, col);
-                if (!cell || cell.text.trim() === "") continue;
+            const numericValues: number[] = [];
+            let totalCount = 0;
 
-                totalCount++;
+            const rowStart = Math.min(startRow, endRow);
+            const rowEnd = Math.max(startRow, endRow);
+            const colStart = Math.min(startCol, endCol);
+            const colEnd = Math.max(startCol, endCol);
 
-                const num = parseFloat(cell.text);
-                if (!isNaN(num)) {
-                    numericValues.push(num);
+            for (let row = rowStart; row <= rowEnd; row++) {
+                const rowMap = this.cells.get(row);
+                if (!rowMap) continue;
+
+                for (let col = colStart; col <= colEnd; col++) {
+                    const cell = rowMap.get(col);
+                    if (!cell || cell.text.trim() === "") continue;
+
+                    totalCount++;
+
+                    const num = parseFloat(cell.text);
+                    if (!isNaN(num)) {
+                        numericValues.push(num);
+                    }
                 }
             }
+
+            const sum = numericValues.reduce((a, b) => a + b, 0);
+            const count = totalCount;
+            const numericCount = numericValues.length;
+            const min = numericCount > 0 ? Math.min(...numericValues) : null;
+            const max = numericCount > 0 ? Math.max(...numericValues) : null;
+            const avg = numericCount > 0 ? sum / numericCount : null;
+
+            this.renderAreaStatus({ count, sum, min, max, avg });
+
+        } catch (err) {
+            console.error("Failed to calculate area status:", err);
+            // Optional: Clear or show an error in the status bar
+            this.renderAreaStatus({ count: 0, sum: null, min: null, max: null, avg: null });
         }
-
-        const count = totalCount;
-        const numericCount = numericValues.length;
-        const sum = numericValues.reduce((a, b) => a + b, 0);
-        const min = numericCount > 0 ? Math.min(...numericValues) : null;
-        const max = numericCount > 0 ? Math.max(...numericValues) : null;
-        const avg = numericCount > 0 ? sum / numericCount : null;
-
-        this.renderAreaStatus({ count, sum, min, max, avg });
     }
-
     /**
      * To render selected area status like count, sum, min, max, avg in UI
      * @param stats Selected area status like count, sum, min, max, avg
@@ -1283,6 +1132,7 @@ class ExcelSheet {
         this.sheetWidth += addedWidth;
         virtualArea.style.width = `${this.sheetWidth}px`;
 
+        
         this.updateCumulativeSizes();
         this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
     }
@@ -1312,8 +1162,8 @@ class ExcelSheet {
         let newScrollTop = scrollTop;
 
         // Horizontal scroll check
-        if (cellX < scrollLeft + headerOffsetX) {
-            newScrollLeft = cellX - headerOffsetX;
+        if (cellX < scrollLeft + headerOffsetX + cellWidth) {
+            newScrollLeft = cellX - headerOffsetX - cellWidth;
         } else if (cellX + cellWidth > scrollLeft + viewWidth - headerOffsetX) {
             newScrollLeft = cellX + cellWidth - viewWidth + headerOffsetX;
         }

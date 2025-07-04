@@ -15,17 +15,27 @@ function setupActionButtons() {
     const addColBtn = document.getElementById("add-column");
 
     addRowBtn?.addEventListener("click", () => {
-        const index = sheet.selectedCell?.row ?? sheet.selectedRows.startRow;
-        if (index != null) {
-            sheet.addRow(index);
+        let min = sheet.rows.length;
+        for (var i = 0; i < sheet.selectedRows.length; i++) {
+            if (sheet.selectedRows[i] < min) {
+                min = sheet.selectedRows[i];
+            };
+        }
+        if (min != null) {
+            sheet.addRow(min);
             sheet.redrawVisible(sheet.container.scrollTop, sheet.container.scrollLeft);
         }
     });
 
     addColBtn?.addEventListener("click", () => {
-        const index = sheet.selectedCell?.col ?? sheet.selectedCols.startCol;
-        if (index != null) {
-            sheet.addColumn(index);
+        let min = sheet.columns.length;
+        for (var i = 0; i < sheet.selectedCols.length; i++) {
+            if (sheet.selectedCols[i] < min) {
+                min = sheet.selectedCols[i];
+            };
+        }
+        if (min != null) {
+            sheet.addColumn(min);
             sheet.redrawVisible(sheet.container.scrollTop, sheet.container.scrollLeft);
         }
     });

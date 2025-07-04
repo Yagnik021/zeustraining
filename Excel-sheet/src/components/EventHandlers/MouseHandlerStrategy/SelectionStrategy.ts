@@ -14,6 +14,7 @@ class SelectionStrategy implements MouseStrategy {
     private isRowSelection: boolean = false;
     private isColSelection: boolean = false;
     private autoScrollInterval: number | null = null;
+    private ctrlKeyPressed: boolean = false;
     /**
      * Constructor
      * @param sheet Reference to the sheet 
@@ -30,8 +31,8 @@ class SelectionStrategy implements MouseStrategy {
      * @param e : Pointer event
      */
     onPointerDown(e: MouseEvent): void {
+        this.ctrlKeyPressed = e.ctrlKey;
         const rect = this.sheet.canvas.getBoundingClientRect();
-
         const physicalX = (e.clientX - rect.left) / this.sheet.dpr;
         const physicalY = (e.clientY - rect.top) / this.sheet.dpr;
 
@@ -49,12 +50,27 @@ class SelectionStrategy implements MouseStrategy {
 
 
         if (rowHeaderBuffer < 0 && colHeaderBuffer > 0 && !outOfcanvas) {
+            if (e.ctrlKey) {
+                console.log("test");
 
-            this.sheet.selectedRows.startRow = this.startRow;
-            this.sheet.selectedRows.endRow = this.startRow;
-            this.sheet.selectedCols = { startCol: null, endCol: null };
+                if (this.sheet.selectedRows.indexOf(this.startRow) === -1) {
+                    this.sheet.selectedRows.push(this.startRow);
+                }
+            } else {
+                this.sheet.selectedRows.splice(0, this.sheet.selectedRows.length); // clear
+                this.sheet.selectedRows.push(this.startRow);
+            }
+
+            this.sheet.selectedCols.splice(0, this.sheet.selectedCols.length);
             this.sheet.selectedCell = { row: this.startRow, col: 0 };
-            this.sheet.selectedArea = { startRow: this.startRow, startCol: 0, endRow: this.startRow, endCol: this.sheet.columns.length - 1 };
+
+            this.sheet.selectedArea = {
+                startRow: this.startRow,
+                startCol: 0,
+                endRow: this.startRow,
+                endCol: this.sheet.columns.length - 1
+            };
+
             this.sheet.calculateAreaStatus();
             this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
             this.isRowSelection = true;
@@ -63,23 +79,39 @@ class SelectionStrategy implements MouseStrategy {
         }
 
         if (colHeaderBuffer < 0 && rowHeaderBuffer > 0 && !outOfcanvas) {
+            if (e.ctrlKey) {
+                if (!this.sheet.selectedCols.includes(this.startCol)) {
+                    this.sheet.selectedCols.push(this.startCol);
+                }
+            } else {
+                this.sheet.selectedCols.splice(0, this.sheet.selectedCols.length);
+                this.sheet.selectedCols.push(this.startCol);
+            }
 
-            this.sheet.selectedRows = { startRow: null, endRow: null };
-            this.sheet.selectedCols.startCol = this.startCol;
-            this.sheet.selectedCols.endCol = this.startCol;
+            this.sheet.selectedRows.splice(0, this.sheet.selectedRows.length); // Clear row selections
             this.sheet.selectedCell = { row: 0, col: this.startCol };
-            this.sheet.selectedArea = { startRow: 0, startCol: this.startCol, endRow: this.sheet.rows.length - 1, endCol: this.startCol };
+
+            // Full-height column area selection
+            this.sheet.selectedArea = {
+                startRow: 0,
+                startCol: this.startCol,
+                endRow: this.sheet.rows.length - 1,
+                endCol: this.startCol
+            };
+
             this.sheet.calculateAreaStatus();
             this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
             this.isColSelection = true;
-            return;
 
+            return;
         }
+
 
         if (outOfcanvas) return;
 
-        this.sheet.selectedRows = { startRow: null, endRow: null };
-        this.sheet.selectedCols = { startCol: null, endCol: null };
+        // this.sheet.selectedRows = { startRow: null, endRow: null };
+        this.sheet.selectedRows.splice(0, this.sheet.selectedRows.length);
+        this.sheet.selectedCols.splice(0, this.sheet.selectedCols.length);
         this.sheet.isSelectingArea = true;
 
         this.sheet.selectedArea = {
@@ -113,34 +145,90 @@ class SelectionStrategy implements MouseStrategy {
 
         const currentRow = this.sheet.getRowIndexFromY(y);
         const currentCol = this.sheet.getColIndexFromX(x);
+        // Use these for area calculations
+        const rowHeaderBuffer = rawX - this.sheet.rowHeaderWidth;
+        const colHeaderBuffer = rawY - this.sheet.colHeaderHeight;
+
+        const outOfcanvas = rawX > this.sheet.canvas.clientWidth || rawY > this.sheet.canvas.clientHeight;
 
         if (this.isRowSelection) {
+            const start = Math.min(this.startRow, currentRow);
+            const end = Math.max(this.startRow, currentRow);
+
+            if (this.ctrlKeyPressed) {
+                // Ctrl + drag: accumulate rows
+                const newRows = [];
+                for (let i = start; i <= end; i++) {
+                    if (!this.sheet.selectedRows.includes(i)) {
+                        newRows.push(i);
+                    }
+                }
+                this.sheet.selectedRows.push(...newRows);
+            } else {
+                // Normal drag: select range
+                this.sheet.selectedRows = [];
+                for (let i = start; i <= end; i++) {
+                    this.sheet.selectedRows.push(i);
+                }
+            }
+
             this.sheet.selectedArea = {
-                startRow: Math.min(this.startRow, currentRow),
+                startRow: start,
+                endRow: end,
                 startCol: 0,
-                endRow: Math.max(this.startRow, currentRow),
                 endCol: this.sheet.columns.length - 1
             };
-            this.sheet.selectedRows = { startRow: Math.min(this.startRow, currentRow), endRow: Math.max(this.startRow, currentRow) };
-            this.sheet.scrollIntoView(this.sheet.selectedArea.endRow!, this.sheet.selectedArea.endCol!);
-            this.sheet.calculateAreaStatus();
-            this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
-            return;
-        };
 
-        if (this.isColSelection) {
-            this.sheet.selectedArea = {
-                startRow: 0,
-                startCol: Math.min(this.startCol, currentCol),
-                endRow: this.sheet.rows.length - 1,
-                endCol: Math.max(this.startCol, currentCol)
-            };
-            this.sheet.selectedCols = { startCol: Math.min(this.startCol, currentCol), endCol: Math.max(this.startCol, currentCol) };
-             this.sheet.scrollIntoView(this.sheet.selectedArea.endRow!, this.sheet.selectedArea.endCol!);
-            this.sheet.calculateAreaStatus();
+            if (colHeaderBuffer < 0) {
+                this.sheet.scrollIntoView(this.sheet.selectedArea.startRow!, 0);
+            } else {
+                this.sheet.scrollIntoView(this.sheet.selectedArea.endRow!, 0);
+            }
+
             this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
             return;
         }
+
+
+        if (this.isColSelection) {
+            const fromCol = this.startCol;
+            const toCol = currentCol;
+
+            const startCol = Math.min(fromCol, toCol);
+            const endCol = Math.max(fromCol, toCol);
+
+            this.sheet.selectedArea = {
+                startRow: 0,
+                startCol,
+                endRow: this.sheet.rows.length - 1,
+                endCol
+            };
+
+            // If Ctrl is pressed, append range
+            if (e.ctrlKey) {
+                for (let col = startCol; col <= endCol; col++) {
+                    if (!this.sheet.selectedCols.includes(col)) {
+                        this.sheet.selectedCols.push(col);
+                    }
+                }
+            } else {
+                this.sheet.selectedCols = [];
+                for (let col = startCol; col <= endCol; col++) {
+                    this.sheet.selectedCols.push(col);
+                }
+            }
+
+            // Scroll to selected column
+            if (rowHeaderBuffer < 0) {
+                this.sheet.scrollIntoView(0, startCol);
+            } else {
+                this.sheet.scrollIntoView(0, endCol);
+            }
+
+            this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
+            return;
+        }
+
 
         this.sheet.selectedArea = {
             startRow: this.startRow,
@@ -153,12 +241,11 @@ class SelectionStrategy implements MouseStrategy {
 
         if (this.sheet.selectedArea.startRow !== null && this.sheet.selectedArea.endRow !== null && this.sheet.selectedArea.startCol !== null && this.sheet.selectedArea.endCol !== null && addressDiv !== null) {
             if (this.sheet.isSelectingArea && this.sheet.selectedArea.startRow !== this.sheet.selectedArea.endRow && this.sheet.selectedArea.startCol !== this.sheet.selectedArea.endCol) {
-                addressDiv.innerHTML = `R${Math.abs(this.sheet.selectedArea.startRow - this.sheet.selectedArea.endRow)} X C${Math.abs(this.sheet.selectedArea.startCol - this.sheet.selectedArea.endCol)} `;
+                addressDiv.innerHTML = `R${Math.abs(this.sheet.selectedArea.startRow - this.sheet.selectedArea.endRow + 1)} X C${Math.abs(this.sheet.selectedArea.startCol - this.sheet.selectedArea.endCol + 1)} `;
             }
         }
 
         this.sheet.scrollIntoView(this.sheet.selectedArea.endRow!, this.sheet.selectedArea.endCol!);
-        this.sheet.calculateAreaStatus();
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
 
         this.startAutoScroll(e);
@@ -181,6 +268,7 @@ class SelectionStrategy implements MouseStrategy {
                 this.sheet.formularBarInput.value = "";
             }
         }
+        this.sheet.calculateAreaStatus();
         this.stopAutoScroll();
     }
 

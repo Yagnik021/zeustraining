@@ -18,8 +18,6 @@ class Cell {
      */
     constructor(text: string = "", rowIndex: number, colIndex: number) {
         this.text = text;
-        // this.rowIndex = rowIndex;
-        // this.colIndex = colIndex;
     }
 
     /**
