@@ -135,7 +135,6 @@ class SelectionStrategy implements MouseStrategy {
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
 
-
     /**
      * Event handler for pointer down
      * @param e : Pointer event
@@ -242,9 +241,7 @@ class SelectionStrategy implements MouseStrategy {
                 addressDiv.innerHTML = this.sheet.columns[currentCol].label + (currentRow + 1);
             }
         }
-
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
-
         this.startAutoScroll(e);
     }
 

@@ -29,9 +29,10 @@ export class KeyDownHandler {
     private onKeyDown(e: KeyboardEvent) {
         const sheet = this.sheet;
 
+        if (document.activeElement === sheet.formularBarInput) return;
         // Handle Ctrl shortcuts
         if (e.ctrlKey) {
-            switch (e.key) {
+            switch (e.key.toLowerCase()) {
                 case "z": sheet.commandManager.undo(); return;
                 case "y": sheet.commandManager.redo(); return;
                 case "c": copySelectionToClipboardBuffer(sheet); return;
@@ -89,7 +90,7 @@ export class KeyDownHandler {
         const clearArea = () => s.selectedArea = { startRow: null, endRow: null, startCol: null, endCol: null };
         let isAreaExists = s.selectedArea.startRow !== null && s.selectedArea.startCol !== null && s.selectedArea.endRow !== null && s.selectedArea.endCol !== null;
         if (!isAreaExists) {
-            s.selectedArea = { startRow: row, startCol: col, endRow: row, endCol: col };   
+            s.selectedArea = { startRow: row, startCol: col, endRow: row, endCol: col };
         }
         switch (e.key) {
             case "ArrowRight":
@@ -149,9 +150,9 @@ export class KeyDownHandler {
         const s = this.sheet;
         let newRow = row, newCol = col;
         const clearArea = () => s.selectedArea = { startRow: null, endRow: null, startCol: null, endCol: null };
-        const areaExists = area.startRow !== null && area.endRow !== null && area.startCol !== null && area.endCol !== null && area.startRow !== area.endRow && area.startCol !== area.endCol;
+        const areaExists = area.startRow !== null && area.endRow !== null && area.startCol !== null && area.endCol !== null && (area.startRow !== area.endRow || area.startCol !== area.endCol);
 
-        if(!areaExists) clearArea();
+        if (!areaExists) clearArea();
 
         switch (e.key) {
             case "ArrowRight":
@@ -171,7 +172,7 @@ export class KeyDownHandler {
                 newRow = Math.max(row - 1, 0);
                 break;
             case "Enter":
-                if (areaExists) {                    
+                if (areaExists) {
                     const start = area.startRow!, end = area.endRow!;
                     if (e.shiftKey) newRow = row > start ? row - 1 : end;
                     else {

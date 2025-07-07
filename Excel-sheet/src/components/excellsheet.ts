@@ -6,6 +6,8 @@ import { jsonData, headers } from "./jsonData";
 import { EditCellCommand } from "./Commands/EditCommandCell";
 import { MouseHandler } from "./EventHandlers/MouseHandler";
 import { KeyDownHandler } from "./EventHandlers/KeydownHandler";
+import { evaluateFormula } from "./Utils/evaluator";
+import { a1ToIndexes } from "./Utils/a1Utils";
 
 
 type DataRow = {
@@ -93,6 +95,7 @@ class ExcelSheet {
     public cumulativeColWidths: number[] = [];
     public cumulativeRowHeights: number[] = [];
     public isInputOn = false;
+    public selectedRange: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null } = { startRow: null, startCol: null, endRow: null, endCol: null };
 
     /**
      * Constructor for ExcelSheet.
@@ -177,7 +180,7 @@ class ExcelSheet {
 
                 if (row === 0) {
                     if (col < headers.length) {
-                        cell = new Cell(headers[col], row, col);
+                        cell = new Cell(headers[col]);
                     } else {
                         continue; // Skip empty cell
                     }
@@ -185,7 +188,7 @@ class ExcelSheet {
                     if (col < headers.length) {
                         const attribute = headers[col];
                         const value = jsonData[row - 1][attribute];
-                        cell = new Cell(String(value), row, col);
+                        cell = new Cell(String(value));
                     } else {
                         continue; // Skip empty cell
                     }
@@ -265,7 +268,7 @@ class ExcelSheet {
         }
         let cell = rowMap.get(col);
         if (!cell) {
-            cell = new Cell("", row, col);
+            cell = new Cell("");
             rowMap.set(col, cell);
         }
         return cell;
@@ -362,19 +365,25 @@ class ExcelSheet {
 
         this.formularBarInput.addEventListener("input", () => {
 
-
             if (this.selectedCell) {
 
                 const row = this.selectedCell.row;
                 const col = this.selectedCell.col;
-                const newValue = this.formularBarInput.value;
+                let newValue = this.formularBarInput.value;
+                console.log(this.formularBarInput.value);
+
                 const currentValue = this.getOrCreateCell(row, col)?.text;
 
                 if (newValue === currentValue) return;
-
+                if (newValue.trim().startsWith("=")) {
+                    const evaluated = evaluateFormula(newValue.trim(), this);
+                    // You can choose to replace the displayed value or store both in EditCellCommand
+                    newValue = evaluated; // Only value is passed for editing now
+                }
                 const cmd = new EditCellCommand(
                     row,
                     col,
+                    this.formularBarInput.value,
                     newValue,
                     (r, c) => this.getOrCreateCell(r, c),
                     () => this.redrawVisible(this.container.scrollTop, this.container.scrollLeft)
@@ -384,21 +393,6 @@ class ExcelSheet {
             }
         })
     }
-
-
-    // /**
-    //  * To get the cell from the grid
-    //  * @param row Row index of the cell
-    //  * @param col Column index of the cell
-    //  * @returns Cell object
-    //  */
-    // public getOrCreateCell(row: number, col: number): Cell | null {
-    //     if (this.cells[row] && this.cells[row][col]) {
-    //         return this.cells[row][col];
-    //     }
-    //     return null;
-    // }
-
 
     /**
      * To show input over the cell
@@ -412,45 +406,63 @@ class ExcelSheet {
 
         this.selectedCell = { row, col };
 
-        const input = document.createElement("input");
+        const input_box = document.createElement("input");
         const virtualArea = document.querySelector(".virtual-canvas-area") as HTMLElement;
         this.isInputOn = true;
 
-        input.type = "text";
-        input.value = initialValue ?? cell.text.toString();
-        input.style.position = "absolute";
-        input.style.left = `${(x + this.rowHeaderWidth) * this.dpr}px`;
-        input.style.top = `${(y + this.colHeaderHeight) * this.dpr}px`;
-        input.style.width = `${this.columns[col].width * this.dpr}px`;
-        input.style.height = `${this.rows[row].height * this.dpr}px`;
-        input.style.fontSize = "14px";
-        input.style.zIndex = "1";
+        input_box.type = "text";
+        input_box.value = initialValue ?? cell.text.toString();
+        input_box.style.position = "absolute";
+        input_box.style.left = `${(x + this.rowHeaderWidth) * this.dpr}px`;
+        input_box.style.top = `${(y + this.colHeaderHeight) * this.dpr}px`;
+        input_box.style.width = `${this.columns[col].width * this.dpr}px`;
+        input_box.style.height = `${this.rows[row].height * this.dpr}px`;
+        input_box.style.fontSize = "14px";
+        input_box.style.zIndex = "1";
         virtualArea.style.overflow = "hidden";
-        virtualArea.appendChild(input);
-        input.focus();
+        virtualArea.appendChild(input_box);
+        input_box.focus();
 
-        input.addEventListener("input", () => {
+        input_box.addEventListener("input", () => {
+            this.formularBarInput.value = input_box.value;
+            let newValue = input_box.value;
+            const match = newValue.match(/^=([A-Z]+)\((\w+\d+):(\w+\d+)\)$/i) || [];
+            console.log("Match : ", match);
 
-            this.formularBarInput.value = input.value;
+            if (!match.length) return;
+            const start = match[2];
+            const end = match[3];
+
+            let startRange = a1ToIndexes(start);
+            let endRange = a1ToIndexes(end);
+
+            this.selectedRange = { startRow: startRange.row, startCol: startRange.col, endRow: endRange.row, endCol: endRange.col };
+            this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
         });
 
-        input.addEventListener("blur", () => {
-            let newValue = input.value;
+        input_box.addEventListener("blur", () => {
+            let newValue = input_box.value;
+            if (newValue.trim().startsWith("=")) {
+                const evaluated = evaluateFormula(newValue.trim(), this);
+                newValue = evaluated;
+            }
+            this.selectedRange = { startRow: null, startCol: null, endRow: null, endCol: null };
             const cmd = new EditCellCommand(
                 row,
                 col,
+                input_box.value,
                 newValue,
                 (r, c) => this.getOrCreateCell(r, c),
                 () => this.redrawVisible(this.container.scrollTop, this.container.scrollLeft)
             );
             this.commandManager.executeCommand(cmd);
-            virtualArea.removeChild(input);
+            virtualArea.removeChild(input_box);
             this.isInputOn = false;
         });
 
-        input.addEventListener("keydown", (e) => {
+        input_box.addEventListener("keydown", (e) => {
             if (e.key === "Enter" || e.key === "Escape" || e.key === "Tab") {
-                input.blur();
+                input_box.blur();
             }
         });
     }
@@ -462,9 +474,6 @@ class ExcelSheet {
      * @param scrollLeft Current scroll left of the grid
      */
     public redrawVisible(scrollTop: number, scrollLeft: number): void {
-
-
-
         const viewportWidth = this.canvas.width;
         const viewportHeight = this.canvas.height;
 
@@ -526,6 +535,10 @@ class ExcelSheet {
         this.drawColumnHeaders(startCol, endCol, scrollLeft);
         this.drawRowHeaders(startRow, endRow, scrollTop);
         this.drawCornorBox();
+
+        if (this.selectedRange.startRow !== null && this.selectedRange.startCol !== null && this.selectedRange.endRow !== null && this.selectedRange.endCol !== null) {
+            this.highlightSelectedRange(this.selectedRange.startRow, this.selectedRange.endRow, this.selectedRange.startCol, this.selectedRange.endCol, scrollTop, scrollLeft);
+        }
     }
 
 
@@ -564,16 +577,20 @@ class ExcelSheet {
     renderText(value: string, x: number, y: number, width: number, height: number) {
         this.ctx.font = "14px Arial";
         const padding = 6;
-
+        let displayText = value;
         let text = value;
-        let metrics = this.ctx.measureText(text);
+        if (text.startsWith("=")) {
+            text = evaluateFormula(text.trim(), this);
+            displayText = text;
+        }
 
+        let metrics = this.ctx.measureText(text);
         while (metrics.width > width - 2 * padding && text.length > 0) {
             text = text.slice(0, -1);
             metrics = this.ctx.measureText(text + "…");
         }
 
-        if (text.length < value.length) {
+        if (text.length < displayText.length) {
             text += "…"; // add ellipsis
         }
 
@@ -647,7 +664,6 @@ class ExcelSheet {
     highlightSelectedArea(startRow: number, endRow: number, startCol: number, endCol: number, scrollTop: number, scrollLeft: number) {
 
         if (this.selectedArea.startRow === null || this.selectedArea.startCol === null || this.selectedArea.endRow === null || this.selectedArea.endCol === null) return;
-
 
         const startAreaRow = Math.min(this.selectedArea.startRow, this.selectedArea.endRow);
         const endAreaRow = Math.max(this.selectedArea.startRow, this.selectedArea.endRow);
@@ -742,8 +758,42 @@ class ExcelSheet {
                 this.ctx.lineWidth = 1;
             }
         }
+    }
 
 
+    highlightSelectedRange(startRow: number, endRow: number, startCol: number, endCol: number, scrollTop: number, scrollLeft: number) {
+        if (startRow !== null && startCol !== null && endRow !== null && endCol !== null) {
+            console.log("try to draw selected range");
+
+            let sr1 = startRow, sc1 = startCol, er1 = endRow, ec1 = endCol;
+
+            startRow = Math.min(sr1, er1);
+            startCol = Math.min(sc1, ec1);
+            endRow = Math.max(sr1, er1);
+            endCol = Math.max(sc1, ec1);
+
+            console.log(startRow, endRow, startCol, endCol);
+            
+
+            let y = (this.cumulativeRowHeights[startRow - 1] ?? 0) - scrollTop + this.colHeaderHeight;
+            let x = (this.cumulativeColWidths[startCol - 1] ?? 0) - scrollLeft + this.rowHeaderWidth;
+
+            if(x < 0) x = 0;
+            if(y < 0) y = 0;
+
+            let width = this.cumulativeColWidths[endCol] - (this.cumulativeColWidths[startCol - 1] ?? 0);
+            let height = this.cumulativeRowHeights[endRow] - (this.cumulativeRowHeights[startRow - 1] ?? 0);
+            console.log(x, y, width, height);
+            console.log(this.cumulativeRowHeights[startCol - 1] ?? 0, this.cumulativeRowHeights[endCol]);
+
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = "blue";
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x, y, width, height);
+            this.ctx.stroke();
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeStyle = "black";
+        }
     }
 
     /**
@@ -982,75 +1032,95 @@ class ExcelSheet {
     /**
      * To calculate Selected area status like count, sum, min, max, avg
      */
-    calculateAreaStatus() {
-        try {
-            const { startRow, endRow, startCol, endCol } = this.selectedArea;
+    calculateAreaStatus(batchSize: number = 50) {
+        const { startRow, endRow, startCol, endCol } = this.selectedArea;
 
-            // If area is not selected, fallback to selectedCell
-            if (
-                startRow === null ||
-                endRow === null ||
-                startCol === null ||
-                endCol === null
-            ) {
-                if (this.selectedCell) {
-                    const cell = this.cells.get(this.selectedCell.row)?.get(this.selectedCell.col);
-                    const value = cell?.text?.trim() ?? "";
+        if (
+            startRow === null ||
+            endRow === null ||
+            startCol === null ||
+            endCol === null
+        ) {
+            if (this.selectedCell) {
+                const cell = this.cells.get(this.selectedCell.row)?.get(this.selectedCell.col);
+                const value = cell?.text?.trim() ?? "";
+                const num = parseFloat(value);
+                const isNum = !isNaN(num);
 
-                    const num = parseFloat(value);
-                    const isNum = !isNaN(num);
-
-                    this.renderAreaStatus({
-                        count: value !== "" ? 1 : 0,
-                        sum: isNum ? num : null,
-                        min: isNum ? num : null,
-                        max: isNum ? num : null,
-                        avg: isNum ? num : null
-                    });
-                }
-                return;
+                this.renderAreaStatus({
+                    count: value !== "" ? 1 : 0,
+                    sum: isNum ? num : null,
+                    min: isNum ? num : null,
+                    max: isNum ? num : null,
+                    avg: isNum ? num : null
+                });
             }
+            return;
+        }
 
-            const numericValues: number[] = [];
-            let totalCount = 0;
+        let sum = 0;
+        let numericCount = 0;
+        let totalCount = 0;
+        let min: number | null = null;
+        let max: number | null = null;
 
-            const rowStart = Math.min(startRow, endRow);
-            const rowEnd = Math.max(startRow, endRow);
-            const colStart = Math.min(startCol, endCol);
-            const colEnd = Math.max(startCol, endCol);
+        const rowStart = Math.min(startRow, endRow);
+        const rowEnd = Math.max(startRow, endRow);
+        const colStart = Math.min(startCol, endCol);
+        const colEnd = Math.max(startCol, endCol);
 
-            for (let row = rowStart; row <= rowEnd; row++) {
-                const rowMap = this.cells.get(row);
+        let currentRow = rowStart;
+
+        const processBatch = () => {
+            const limit = Math.min(currentRow + batchSize, rowEnd + 1);
+
+            for (; currentRow < limit; currentRow++) {
+                const rowMap = this.cells.get(currentRow);
                 if (!rowMap) continue;
 
                 for (let col = colStart; col <= colEnd; col++) {
                     const cell = rowMap.get(col);
-                    if (!cell || cell.text.trim() === "") continue;
+                    if (!cell || cell.displayValue.trim() === "") continue;
 
                     totalCount++;
 
-                    const num = parseFloat(cell.text);
+                    const num = parseFloat(cell.displayValue);
                     if (!isNaN(num)) {
-                        numericValues.push(num);
+                        numericCount++;
+                        sum += num;
+                        min = min === null ? num : Math.min(min, num);
+                        max = max === null ? num : Math.max(max, num);
                     }
                 }
             }
 
-            const sum = numericValues.reduce((a, b) => a + b, 0);
-            const count = totalCount;
-            const numericCount = numericValues.length;
-            const min = numericCount > 0 ? Math.min(...numericValues) : null;
-            const max = numericCount > 0 ? Math.max(...numericValues) : null;
-            const avg = numericCount > 0 ? sum / numericCount : null;
+            if (currentRow <= rowEnd) {
+                // if ((rowEnd - rowStart + 1) * (colEnd - colStart + 1) > 5000) {
+                //     setTimeout(processBatch, 0);
+                // } else {
+                processBatch();
+                // }
+            } else {
+                const avg = numericCount > 0 ? sum / numericCount : null;
 
-            this.renderAreaStatus({ count, sum, min, max, avg });
+                this.renderAreaStatus({
+                    count: totalCount,
+                    sum: numericCount > 0 ? sum : null,
+                    min,
+                    max,
+                    avg
+                });
+            }
+        };
 
+        try {
+            processBatch();
         } catch (err) {
             console.error("Failed to calculate area status:", err);
-            // Optional: Clear or show an error in the status bar
             this.renderAreaStatus({ count: 0, sum: null, min: null, max: null, avg: null });
         }
     }
+
     /**
      * To render selected area status like count, sum, min, max, avg in UI
      * @param stats Selected area status like count, sum, min, max, avg
@@ -1139,7 +1209,7 @@ class ExcelSheet {
                 }
             }
 
-            const blankCell = new Cell("", rowIndex, index);
+            const blankCell = new Cell("");
             newColMap.set(index, blankCell);
 
             this.cells.set(rowIndex, newColMap);

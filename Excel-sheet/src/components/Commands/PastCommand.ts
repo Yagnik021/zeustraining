@@ -37,8 +37,8 @@ export class PasteCommand implements Command {
                 const col = this.startCol + c;
                 const cell = this.sheet.getOrCreateCell(row, col);
                 if (cell) {
-                    this.previousValues.push({ row, col, value: cell.text });
-                    cell.text = this.dataToPaste[r][c];
+                    this.previousValues.push({ row, col, value: cell.displayValue });
+                    cell.displayValue = this.dataToPaste[r][c];
                 }
             }
         }
@@ -53,7 +53,7 @@ export class PasteCommand implements Command {
         for (const snapshot of this.previousValues) {
             const cell = this.sheet.getOrCreateCell(snapshot.row, snapshot.col);
             if (cell) {
-                cell.text = snapshot.value;
+                cell.displayValue = snapshot.value;
             }
         }
 

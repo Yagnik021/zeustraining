@@ -1,3 +1,5 @@
+import { evaluateFormula } from "./Utils/evaluator";
+
 /**
  * Represents a cell in the Excel sheet.
  * @param {string} text - The text content of the cell.
@@ -5,9 +7,9 @@
  * @param {number} colIndex - The column index of the cell.
  */
 class Cell {
+
     text: string;
-    // rowIndex: number;
-    // colIndex: number;
+    displayValue: string;
 
 
     /**
@@ -16,19 +18,21 @@ class Cell {
      * @param {number} rowIndex - The row index of the cell.
      * @param {number} colIndex - The column index of the cell.
      */
-    constructor(text: string = "", rowIndex: number, colIndex: number) {
+    constructor(text: string = "") {
         this.text = text;
+        this.displayValue = text;
     }
 
     /**
      * This method updates the text content of the cell.
      * @param newText New text to update the cell with.
      */
-    updateText(newText?: string | null) {
-        if (newText) {
-            this.text = newText;
-        } else {
-            this.text = "";
+    updateText(newText?: string | null, newDisplayValue?: string | null) {
+        this.text = newText ?? "";
+        if(newText?.startsWith("=")){
+            this.displayValue = newDisplayValue ?? newText ?? "";
+        }else{
+            this.displayValue = this.text; 
         }
     }
 }

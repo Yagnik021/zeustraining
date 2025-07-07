@@ -35,8 +35,6 @@ export class CutCommand implements Command {
                 endCol: cell.col,
             };
         }
-
-
         if (area.startCol === null || area.endCol === null || area.startRow === null || area.endRow === null) return;
 
         const buffer: string[][] = [];
@@ -57,14 +55,13 @@ export class CutCommand implements Command {
             for (let c = area.startCol; c <= area.endCol; c++) {
                 const cell = this.sheet.getOrCreateCell(r, c);
                 if (cell) {
-                    this.previousValues.push({ row: r, col: c, value: cell.text });
-                    row.push(cell.text);
-                    cell.text = "";
+                    this.previousValues.push({ row: r, col: c, value: cell.displayValue });
+                    row.push(cell.displayValue);
+                    cell.displayValue = "";
                 }
             }
             buffer.push(row);
         }
-
         this.sheet.clipboardBuffer = buffer;
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
@@ -75,9 +72,8 @@ export class CutCommand implements Command {
     undo() {
         for (const snap of this.previousValues) {
             const cell = this.sheet.getOrCreateCell(snap.row, snap.col);
-            if (cell) cell.text = snap.value;
+            if (cell) cell.displayValue = snap.value;
         }
-
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
 }
