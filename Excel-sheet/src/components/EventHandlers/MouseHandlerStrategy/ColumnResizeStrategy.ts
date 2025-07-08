@@ -38,12 +38,6 @@ class ColumnResizeStrategy implements MouseStrategy {
             const columnPosition = this.sheet.cumulativeColWidths[this.resizeColIndex!] - scrollLeft + this.sheet.rowHeaderWidth;
 
             this.sheet.drawColumnHeaders(startCol, endCol, scrollLeft);                         
-
-            this.sheet.ctx.beginPath();
-            this.sheet.ctx.strokeStyle = "#137E43";
-            this.sheet.ctx.moveTo(columnPosition, this.sheet.colHeaderHeight);
-            this.sheet.ctx.lineTo(columnPosition, this.sheet.canvas.height);
-            this.sheet.ctx.stroke();
         });
     }
 
