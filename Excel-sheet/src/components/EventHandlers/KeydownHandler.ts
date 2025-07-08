@@ -173,11 +173,13 @@ export class KeyDownHandler {
                 break;
             case "Enter":
                 if (areaExists) {
-                    const start = area.startRow!, end = area.endRow!;
+                    const start = Math.min(area.startRow!,area.endRow!), end = Math.max(area.startRow!,area.endRow!);
+                    let endCol = Math.max(area.startCol!,area.endCol!);
+                    let startCol = Math.min(area.startCol!,area.endCol!);
                     if (e.shiftKey) newRow = row > start ? row - 1 : end;
                     else {
                         newRow = row < end ? row + 1 : start;
-                        if (row === end) newCol = col + 1 <= area.endCol! ? col + 1 : area.startCol!;
+                        if (row === end) newCol = col + 1 <= endCol ? col + 1 : startCol;
                     }
                 } else {
                     newRow = Math.min(row + 1, s.rows.length - 1);
@@ -186,9 +188,11 @@ export class KeyDownHandler {
             case "Tab":
                 e.preventDefault();
                 if (areaExists) {
-                    const start = area.startCol!, end = area.endCol!;
+                    const start = Math.min(area.startCol!,area.endCol!), end = Math.max(area.startCol!,area.endCol!);
+                    let endRow = Math.max(area.startRow!,area.endRow!);
+                    let startRow = Math.min(area.startRow!,area.endRow!);
                     newCol = col < end ? col + 1 : start;
-                    if (col === end) newRow = row + 1 <= area.endRow! ? row + 1 : area.startRow!;
+                    if (col === end) newRow = row + 1 <= endRow ? row + 1 : startRow;
                 } else {
                     newCol++;
                     if (newCol >= s.columns.length) {

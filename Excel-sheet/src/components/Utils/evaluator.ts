@@ -3,6 +3,12 @@ import { a1ToIndexes } from "./a1Utils";
 import { ExcelSheet } from "../Excellsheet"; // adjust path as needed
 import { Cell } from "../Cell";
 
+/**
+ * To evaluate the formula and return the result
+ * @param formula Formula string from the formula bar/cell 
+ * @param sheet Refrence to the sheet
+ * @returns Result of the formula
+ */
 export function evaluateFormula(formula: string, sheet: ExcelSheet): string {
     const match = formula.match(/^=([A-Z]+)\((\w+\d+):(\w+\d+)\)$/i);
     if (!match) return formula;
@@ -23,6 +29,13 @@ export function evaluateFormula(formula: string, sheet: ExcelSheet): string {
     }
 }
 
+/**
+ * To get the cells in the range
+ * @param sheet Refrence to the sheet
+ * @param start Start cell (In A1 format)
+ * @param end End cell (In A1 format)
+ * @returns Array of cells in the range
+ */
 function getCellsInRange(sheet: ExcelSheet, start: string, end: string): Cell[] {
     const { row: startRow, col: startCol } = a1ToIndexes(start);
     const { row: endRow, col: endCol } = a1ToIndexes(end);

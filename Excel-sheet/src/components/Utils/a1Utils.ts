@@ -1,4 +1,8 @@
-// utils/a1Utils.ts
+/**
+ * Utility function to convert A1 notation to row and column indexes
+ * @param a1 Notation to convert
+ * @returns Row and column indexes in an object
+ */
 export function a1ToIndexes(a1: string): { row: number, col: number } {
     const match = a1.match(/^([A-Z]+)(\d+)$/i);
     if (!match) throw new Error(`Invalid cell reference: ${a1}`);
@@ -13,6 +17,12 @@ export function a1ToIndexes(a1: string): { row: number, col: number } {
     return { row, col };
 }
 
+/**
+ * To convert row and column indexes to A1 notation
+ * @param row Row index to convert
+ * @param col Column index to convert
+ * @returns Cell reference in A1 notation
+ */
 export function indexesToA1(row: number, col: number): string {
     let colStr = "";
     col += 1;

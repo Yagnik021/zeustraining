@@ -68,34 +68,35 @@ const colIndexToField: Record<number, keyof DataRow> = {
 
 class ExcelSheet {
 
-    public isResizing = false;
-    public resizeTarget: { type: "column" | "row", index: number } | null = null;
-    public resizeStartPos = { x: 0, y: 0 };
     private _selectedCell: { row: number; col: number } | null = null;
+    private _resizeTarget: { type: "column" | "row"; index: number } | null = null;
+    private _resizeStartPos = { x: 0, y: 0 };
+    private _clipboardBuffer: string[][] | null = null;
+    private _rows: Row[] = [];
+    private _columns: Column[] = [];
+    private _cells = new Map<number, Map<number, Cell>>();
+    private _sheetWidth = 0;
+    private _sheetHeight = 0;
+    private _selectedRows: number[] = [];
+    private _selectedCols: number[] = [];
+    private _selectedArea: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null } = { startRow: null, startCol: null, endRow: null, endCol: null };
+    private _rowHeaderWidth = 50;
+    private _colHeaderHeight = 30;
+    private _mouseHandler!: MouseHandler;
+    private _cumulativeColWidths: number[] = [];
+    private _cumulativeRowHeights: number[] = [];
+    private _selectedRange: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null } = { startRow: null, startCol: null, endRow: null, endCol: null };
+
+    public commandManager: CommandManager;
+    public container: HTMLElement;
+    public ctx: CanvasRenderingContext2D;
+    public formularBarInput: HTMLInputElement;
+    public isResizing = false;
     public isSelectingArea = false;
     public dpr = window.devicePixelRatio || 1;
-    private ctx: CanvasRenderingContext2D;
     public canvas: HTMLCanvasElement;
-    public clipboardBuffer: string[][] | null = null;
-
-    public rows: Row[] = [];
-    public columns: Column[] = [];
-    public cells = new Map<number, Map<number, Cell>>();
-    public sheetWidth = 0;
-    public sheetHeight = 0;
-    public commandManager: CommandManager;
-    public selectedRows: number[] = [];
-    public selectedCols: number[] = [];
-    public selectedArea: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null } = { startRow: null, startCol: null, endRow: null, endCol: null };
-    public container: HTMLElement;
-    public formularBarInput: HTMLInputElement;
-    public rowHeaderWidth = 50;
-    public colHeaderHeight = 30;
-    public mouseHandler!: MouseHandler;
-    public cumulativeColWidths: number[] = [];
-    public cumulativeRowHeights: number[] = [];
     public isInputOn = false;
-    public selectedRange: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null } = { startRow: null, startCol: null, endRow: null, endCol: null };
+
 
     /**
      * Constructor for ExcelSheet.
@@ -117,6 +118,143 @@ class ExcelSheet {
         this.mouseHandler = new MouseHandler(this);
         this.commandManager = new CommandManager();
         new KeyDownHandler(this);
+    }
+
+    /**
+     * Getter and setter for the resizeTarget property.
+     */
+    get resizeTarget() { return this._resizeTarget; }
+    set resizeTarget(value: { type: "column" | "row"; index: number } | null) { this._resizeTarget = value; }
+
+    /**
+     * Getter and setter for the resizeStartPos property.
+     */
+    get resizeStartPos() { return this._resizeStartPos; }
+    set resizeStartPos(value: { x: number; y: number }) { this._resizeStartPos = value; }
+
+    /**
+     * Getter and setter for the clipboardBuffer property.
+     */
+    get clipboardBuffer() { return this._clipboardBuffer; }
+    set clipboardBuffer(value: string[][] | null) { this._clipboardBuffer = value; }
+
+    /**
+     * Getter and setter for the rows property.
+     */
+    get rows() { return this._rows; }
+    set rows(value: Row[]) { this._rows = value; }
+
+    /**
+     * Getter and setter for the columns property.
+     */
+    get columns() { return this._columns; }
+    set columns(value: Column[]) { this._columns = value; }
+
+    /**
+     * Getter and setter for the cells property.
+     */
+    get cells() { return this._cells; }
+    set cells(value: Map<number, Map<number, Cell>>) { this._cells = value; }
+
+    /**
+     * Getter and setter for the sheetWidth property.
+     */
+    get sheetWidth() { return this._sheetWidth; }
+    set sheetWidth(value: number) { this._sheetWidth = value; }
+
+    /**
+     *  Getter and setter for the sheetHeight property.
+     */
+    get sheetHeight() { return this._sheetHeight; }
+    set sheetHeight(value: number) { this._sheetHeight = value; }
+
+    /**
+     * Getter and setter for the selectedRows property.
+     */
+    get selectedRows() { return this._selectedRows; }
+    set selectedRows(value: number[]) { this._selectedRows = value; }
+
+    /**
+     * Getter and setter for the selectedCols property.
+     */
+    get selectedCols() { return this._selectedCols; }
+    set selectedCols(value: number[]) { this._selectedCols = value; }
+
+    /**
+     * Getter and setter for the selectedArea property.
+     */
+    get selectedArea() { return this._selectedArea; }
+    set selectedArea(value: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null }) {
+        this._selectedArea = value;
+    }
+
+    /**
+     * Getter and setter for the rowHeaderWidth property.
+     */
+    get rowHeaderWidth() { return this._rowHeaderWidth; }
+    set rowHeaderWidth(value: number) { this._rowHeaderWidth = value; }
+
+    /**
+     * Getter and setter for the colHeaderHeight property.
+     */
+    get colHeaderHeight() { return this._colHeaderHeight; }
+    set colHeaderHeight(value: number) { this._colHeaderHeight = value; }
+
+    /**
+     * Getter and setter for the mouseHandler property.
+     */
+    get mouseHandler() { return this._mouseHandler; }
+    set mouseHandler(value: MouseHandler) { this._mouseHandler = value; }
+
+    /**
+     * Getter and setter for the cumulativeColWidths property.
+     */
+    get cumulativeColWidths() { return this._cumulativeColWidths; }
+    set cumulativeColWidths(value: number[]) { this._cumulativeColWidths = value; }
+
+    /**
+     * Getter and setter for the cumulativeRowHeights property.
+     */
+    get cumulativeRowHeights() { return this._cumulativeRowHeights; }
+    set cumulativeRowHeights(value: number[]) { this._cumulativeRowHeights = value; }
+
+    /**
+     * Getter and setter for the selectedRange property.
+     */
+    get selectedRange() { return this._selectedRange; }
+    set selectedRange(value: { startRow: number | null; startCol: number | null; endRow: number | null; endCol: number | null }) {
+        this._selectedRange = value;
+    }
+
+    /**
+     * Getter for the selected cell.
+     */
+    get selectedCell() {
+        return this._selectedCell;
+    }
+
+    /**
+     * Setter for the selected cell.
+     * @param cell The selected cell
+     */
+    set selectedCell(cell: { row: number; col: number } | null) {
+        this._selectedCell = cell;
+
+        // === Side effect: Update the address bar
+        const addressDiv = document.querySelector(".address") as HTMLDivElement;
+
+        if (addressDiv) {
+
+            if (cell) {
+                addressDiv.innerHTML = this.columns[cell.col].label + (cell.row + 1);
+                this.formularBarInput.value = this.getOrCreateCell(cell.row, cell.col)?.text || "";
+            } else {
+                addressDiv.innerHTML = "";
+                this.formularBarInput.value = "";
+            }
+        }
+        this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
+        this.calculateAreaStatus();
     }
 
 
@@ -223,36 +361,6 @@ class ExcelSheet {
         }, []);
     }
 
-    /**
-     * Getter for the selected cell.
-     */
-    get selectedCell() {
-        return this._selectedCell;
-    }
-
-    /**
-     * Setter for the selected cell.
-     * @param cell The selected cell
-     */
-    set selectedCell(cell: { row: number; col: number } | null) {
-        this._selectedCell = cell;
-
-        // === Side effect: Update the address bar
-        const addressDiv = document.querySelector(".address") as HTMLDivElement;
-
-        if (addressDiv) {
-
-            if (cell) {
-                addressDiv.innerHTML = this.columns[cell.col].label + (cell.row + 1);
-                this.formularBarInput.value = this.getOrCreateCell(cell.row, cell.col)?.text || "";
-            } else {
-                addressDiv.innerHTML = "";
-                this.formularBarInput.value = "";
-            }
-        }
-        this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-        this.calculateAreaStatus();
-    }
 
     /**
      * Get cell if not exists then create a new one
@@ -411,7 +519,7 @@ class ExcelSheet {
         this.isInputOn = true;
 
         input_box.type = "text";
-        input_box.value = initialValue ?? cell.text.toString();
+        input_box.value = initialValue ? "" : cell.text.toString();
         input_box.style.position = "absolute";
         input_box.style.left = `${(x + this.rowHeaderWidth) * this.dpr}px`;
         input_box.style.top = `${(y + this.colHeaderHeight) * this.dpr}px`;
@@ -427,7 +535,6 @@ class ExcelSheet {
             this.formularBarInput.value = input_box.value;
             let newValue = input_box.value;
             const match = newValue.match(/^=([A-Z]+)\((\w+\d+):(\w+\d+)\)$/i) || [];
-            console.log("Match : ", match);
 
             if (!match.length) return;
             const start = match[2];
@@ -528,7 +635,6 @@ class ExcelSheet {
         this.drawCellContent(startRow, endRow, startCol, endCol, scrollTop, scrollLeft);
         this.drawGridLines(startRow, endRow, startCol, endCol, scrollTop, scrollLeft);
 
-        // === Draw grid lines (after text)
         this.ctx.beginPath();
         this.ctx.restore();
         this.highlightSelectedArea(startRow, endRow, startCol, endCol, scrollTop, scrollLeft);
@@ -773,13 +879,13 @@ class ExcelSheet {
             endCol = Math.max(sc1, ec1);
 
             console.log(startRow, endRow, startCol, endCol);
-            
+
 
             let y = (this.cumulativeRowHeights[startRow - 1] ?? 0) - scrollTop + this.colHeaderHeight;
             let x = (this.cumulativeColWidths[startCol - 1] ?? 0) - scrollLeft + this.rowHeaderWidth;
 
-            if(x < 0) x = 0;
-            if(y < 0) y = 0;
+            if (x < 0) x = 0;
+            if (y < 0) y = 0;
 
             let width = this.cumulativeColWidths[endCol] - (this.cumulativeColWidths[startCol - 1] ?? 0);
             let height = this.cumulativeRowHeights[endRow] - (this.cumulativeRowHeights[startRow - 1] ?? 0);
@@ -1197,7 +1303,6 @@ class ExcelSheet {
             this.columns[i].updateIndex(i);
         }
 
-        // 3. Shift cells to the right and insert blank cell in new column
         for (const [rowIndex, colMap] of this.cells.entries()) {
             const newColMap = new Map<number, Cell>();
 
