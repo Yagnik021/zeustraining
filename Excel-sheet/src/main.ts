@@ -19,7 +19,6 @@ function setupActionButtons() {
         for (var i = 0; i < sheet.selectedRows.length; i++) {
             if (sheet.selectedRows[i] < min) {
                 min = sheet.selectedRows[i];
-                console.log(min);
             };
         }
         let selectedRow = Math.min(sheet.selectedArea.startRow ?? sheet.rows.length - 1, sheet.selectedArea.endRow ?? sheet.rows.length - 1); 

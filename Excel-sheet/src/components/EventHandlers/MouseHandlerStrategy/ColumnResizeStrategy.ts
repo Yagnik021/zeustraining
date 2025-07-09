@@ -2,11 +2,25 @@ import { ResizeCommand } from "../../Commands/ResizeCommand";
 import type { ExcelSheet } from "../../Excellsheet";
 import type { MouseStrategy } from "./MouseStrategy";
 
+/**
+ * Strategy class for handling column resizing via mouse.
+ */
 class ColumnResizeStrategy implements MouseStrategy {
     private originalWidth: number = 0;
     private resizeColIndex: number | null = null;
     private animationFrameId: number | null = null;
-    constructor(private sheet: ExcelSheet) { }
+    private resizeLine: HTMLDivElement;
+    constructor(private sheet: ExcelSheet) {
+        this.resizeLine = document.createElement("div");
+        this.resizeLine.style.position = "absolute";
+        this.resizeLine.style.top = `${this.sheet.colHeaderHeight}px`;
+        this.resizeLine.style.bottom = "0";
+        this.resizeLine.style.borderLeft = "2px dashed #137E43";
+        this.resizeLine.style.zIndex = "9999";
+        this.resizeLine.style.pointerEvents = "none"; // don't interfere with mouse
+        this.resizeLine.style.display = "none"; // hide initially
+        this.sheet.container.appendChild(this.resizeLine);
+    }
 
     onPointerDown(e: MouseEvent): void {
 
@@ -20,7 +34,7 @@ class ColumnResizeStrategy implements MouseStrategy {
     onPointerMove(e: MouseEvent): void {
         if (!this.sheet.isResizing) return;
 
-        
+
         if (this.resizeColIndex === null) return;
         if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
 
@@ -35,9 +49,13 @@ class ColumnResizeStrategy implements MouseStrategy {
             const viewportWidth = this.sheet.canvas.width;
             const startCol = this.sheet.getColIndexFromX(scrollLeft);
             const endCol = this.sheet.getColIndexFromX(scrollLeft + viewportWidth);
-            const columnPosition = this.sheet.cumulativeColWidths[this.resizeColIndex!] - scrollLeft + this.sheet.rowHeaderWidth;
 
-            this.sheet.drawColumnHeaders(startCol, endCol, scrollLeft);                         
+            const columnPosition = this.sheet.cumulativeColWidths[this.resizeColIndex!] + this.sheet.rowHeaderWidth;
+            this.sheet.drawColumnHeaders(startCol, endCol, scrollLeft);
+            this.resizeLine.style.top = `${this.sheet.container.scrollTop + this.sheet.colHeaderHeight}px`;
+            this.resizeLine.style.height = `${this.sheet.canvas.height - this.sheet.colHeaderHeight}px`;
+            this.resizeLine.style.left = `${columnPosition}px`;
+            this.resizeLine.style.display = "block";
         });
     }
 
@@ -55,7 +73,7 @@ class ColumnResizeStrategy implements MouseStrategy {
             );
             this.sheet.commandManager.executeCommand(resizeCommand);
         }
-
+        this.resizeLine.style.display = "none";
         this.sheet.isResizing = false;
         this.sheet.resizeTarget = null;
     }

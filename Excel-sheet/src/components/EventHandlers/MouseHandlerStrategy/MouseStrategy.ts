@@ -1,3 +1,6 @@
+/**
+ * Interface for mouse event handlers
+ */
 export interface MouseStrategy {
     onPointerDown(e: MouseEvent): void;
     onPointerMove(e: MouseEvent): void;

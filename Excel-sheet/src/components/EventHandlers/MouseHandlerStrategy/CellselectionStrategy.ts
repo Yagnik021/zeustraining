@@ -2,6 +2,9 @@ import type { ExcelSheet } from "../../Excellsheet";
 import { AutoScroller } from "../../Utils/autoScroll";
 import type { MouseStrategy } from "./MouseStrategy";
 
+/**
+ * Strategy class for handling cell selection via mouse.
+ */
 class CellSelectionStrategy implements MouseStrategy {
     private startRow: number | null = null;
     private startCol: number | null = null;

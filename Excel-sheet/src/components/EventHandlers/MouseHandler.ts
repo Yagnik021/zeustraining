@@ -8,11 +8,18 @@ import { RowSelectionStrategy } from "./MouseHandlerStrategy/RowSelectionStrateg
 import { CursorStrategy } from "./MouseHandlerStrategy/CursorStrategy";
 import { SheetSelectionStrategy } from "./MouseHandlerStrategy/SheetSeletionStrategy";
 
+/**
+ * Handles mouse events and delegates them to the appropriate strategy
+ */
 export class MouseHandler {
     private strategies: MouseStrategy[] = [];
     private activeStrategy: MouseStrategy | null = null;
     private cursorStrategy: CursorStrategy;
 
+    /**
+     * Constructor
+     * @param sheet The ExcelSheet instance 
+     */
     constructor(private sheet: ExcelSheet) {
         this.cursorStrategy = new CursorStrategy(sheet);
         this.strategies = [
@@ -26,12 +33,19 @@ export class MouseHandler {
         this.attachEvents();
     }
 
+    /**
+     * Attaches event listeners
+     */
     attachEvents() {
         this.sheet.container.addEventListener("pointerdown", (e) => this.pointerDown(e as PointerEvent));
         window.addEventListener("pointermove", (e) => this.pointerMove(e as PointerEvent));
         window.addEventListener("pointerup", (e) => this.pointerUp(e as PointerEvent));
     }
 
+    /**
+     * Helper method to handle pointer down
+     * @param e Pointer event
+     */
     pointerDown(e: PointerEvent) {
         for (const strategy of this.strategies) {
             if (strategy.hitTest(e)) {
@@ -42,11 +56,19 @@ export class MouseHandler {
         }
     }
 
+    /**
+     * Helper method to handle pointer move
+     * @param e Pointer event
+     */
     pointerMove(e: PointerEvent) {
         this.cursorStrategy.handle(e);
         this.activeStrategy?.onPointerMove(e);
     }
 
+    /**
+     * Helper method to handle pointer up
+     * @param e Pointer event
+     */
     pointerUp(e: PointerEvent) {
         this.activeStrategy?.onPointerUp(e);
         this.activeStrategy = null;

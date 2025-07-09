@@ -8,8 +8,20 @@ import type { MouseStrategy } from "./MouseStrategy";
 class RowResizeStrategy implements MouseStrategy {
     private originalHeight: number = 0;
     private resizeRowIndex: number | null = null;
+    private resizeLine: HTMLDivElement;
 
-    constructor(private sheet: ExcelSheet) { }
+    constructor(private sheet: ExcelSheet) {
+
+        this.resizeLine = document.createElement("div");
+        this.resizeLine.style.position = "absolute";
+        this.resizeLine.style.left = `${this.sheet.rowHeaderWidth}px`;
+        this.resizeLine.style.bottom = "0";
+        this.resizeLine.style.borderTop = "2px dashed #137E43";
+        this.resizeLine.style.zIndex = "9999";
+        this.resizeLine.style.pointerEvents = "none"; // don't interfere with mouse
+        this.resizeLine.style.display = "none"; // hide initially
+        this.sheet.container.appendChild(this.resizeLine);
+    }
 
     onPointerDown(e: MouseEvent): void {
         if (this.resizeRowIndex === null) return;
@@ -26,7 +38,18 @@ class RowResizeStrategy implements MouseStrategy {
         row.height = Math.max(30, this.originalHeight + deltaY);
 
         this.sheet.updateCumulativeSizes();
-        this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
+
+        const scrollTop = this.sheet.container.scrollTop;
+        const viewportHeight = this.sheet.canvas.height;
+        const startRow = this.sheet.getRowIndexFromY(scrollTop);
+        const endRow = this.sheet.getRowIndexFromY(scrollTop + viewportHeight);
+
+        const rowPosition = this.sheet.cumulativeRowHeights[this.resizeRowIndex!] + this.sheet.colHeaderHeight;
+        this.sheet.drawRowHeaders(startRow, endRow, scrollTop);
+        this.resizeLine.style.display = "block";
+        this.resizeLine.style.width = `${this.sheet.canvas.width - this.sheet.rowHeaderWidth}px`;
+        this.resizeLine.style.top = `${rowPosition}px`;
+        this.resizeLine.style.left = `${this.sheet.rowHeaderWidth + this.sheet.container.scrollLeft}px`;
     }
 
 
@@ -44,7 +67,7 @@ class RowResizeStrategy implements MouseStrategy {
             );
             this.sheet.commandManager.executeCommand(resizeCommand);
         }
-
+        this.resizeLine.style.display = "none";
         this.sheet.isResizing = false;
         this.sheet.resizeTarget = null;
     }

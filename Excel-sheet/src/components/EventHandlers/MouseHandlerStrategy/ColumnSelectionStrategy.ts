@@ -48,7 +48,9 @@ class ColumnSelectionStrategy implements MouseStrategy {
             this.sheet.selectedCols = [col];
         }
 
-        this.sheet.selectedRows = [];
+        if(!e.ctrlKey){
+            this.sheet.selectedRows = [];
+        }
         this.sheet.selectedCell = { row: 0, col };
 
         this.sheet.selectedArea = {

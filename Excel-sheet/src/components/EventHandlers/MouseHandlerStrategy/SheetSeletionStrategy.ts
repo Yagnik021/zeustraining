@@ -1,6 +1,9 @@
 import type { ExcelSheet } from "../../Excellsheet";
 import type { MouseStrategy } from "./MouseStrategy";
 
+/**
+ * Strategy class for handling sheet selection via mouse.
+ */
 class SheetSelectionStrategy implements MouseStrategy {
 
     constructor(private sheet: ExcelSheet) { }

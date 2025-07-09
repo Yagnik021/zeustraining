@@ -439,11 +439,14 @@ class ExcelSheet {
 
         this.container.addEventListener("dblclick", (e: MouseEvent) => {
             const rect = this.canvas.getBoundingClientRect();
-            const physicalX = (e.clientX - rect.left) / this.dpr;
-            const physicalY = (e.clientY - rect.top) / this.dpr;
+            const physicalX = (e.clientX - rect.left);
+            const physicalY = (e.clientY - rect.top);
 
-            const x = (physicalX + this.container.scrollLeft - this.rowHeaderWidth);
-            const y = (physicalY + this.container.scrollTop - this.colHeaderHeight);
+            const canvasX = physicalX / this.dpr;
+            const canvasY = physicalY / this.dpr;
+
+            const x = canvasX + this.container.scrollLeft - this.rowHeaderWidth;
+            const y = canvasY + this.container.scrollTop - this.colHeaderHeight;
 
             const colIndex = this.getColIndexFromX(x);
             const rowIndex = this.getRowIndexFromY(y);
@@ -466,10 +469,27 @@ class ExcelSheet {
             this.canvas.style.width = this.canvas.width + "px";
             this.canvas.style.height = this.canvas.height + "px";
             this.ctx.scale(currentthis, currentthis);
+            this.ctx.transform(currentthis, 0, 0, currentthis, 0, 0);
 
+            this.updateCumulativeSizes();
             this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-
         })
+
+        this.formularBarInput.addEventListener("focus", () => {
+            let newValue = this.formularBarInput.value;
+            const match = newValue.match(/^=([A-Z]+)\((\w+\d+):(\w+\d+)\)$/i) || [];
+
+            if (!match.length) return;
+            const start = match[2];
+            const end = match[3];
+
+            let startRange = a1ToIndexes(start);
+            let endRange = a1ToIndexes(end);
+
+            this.selectedRange = { startRow: startRange.row, startCol: startRange.col, endRow: endRange.row, endCol: endRange.col };
+            this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
+        })
+
 
         this.formularBarInput.addEventListener("input", () => {
 
@@ -478,14 +498,22 @@ class ExcelSheet {
                 const row = this.selectedCell.row;
                 const col = this.selectedCell.col;
                 let newValue = this.formularBarInput.value;
-                console.log(this.formularBarInput.value);
-
                 const currentValue = this.getOrCreateCell(row, col)?.text;
 
                 if (newValue === currentValue) return;
                 if (newValue.trim().startsWith("=")) {
                     const evaluated = evaluateFormula(newValue.trim(), this);
-                    // You can choose to replace the displayed value or store both in EditCellCommand
+                    const match = newValue.match(/^=([A-Z]+)\(([A-Z]+\d+):([A-Z]+\d+)\)$/i) || [];
+
+                    if (!match.length) return;
+                    const start = match[2];
+                    const end = match[3];
+
+                    let startRange = a1ToIndexes(start);
+                    let endRange = a1ToIndexes(end);
+
+                    this.selectedRange = { startRow: startRange.row, startCol: startRange.col, endRow: endRange.row, endCol: endRange.col };
+                    this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
                     newValue = evaluated; // Only value is passed for editing now
                 }
                 const cmd = new EditCellCommand(
@@ -499,6 +527,12 @@ class ExcelSheet {
 
                 this.commandManager.executeCommand(cmd);
             }
+        })
+
+        this.formularBarInput.addEventListener("blur", () => {
+
+            this.selectedRange = { startRow: null, startCol: null, endRow: null, endCol: null };
+            this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
         })
     }
 
@@ -529,12 +563,26 @@ class ExcelSheet {
         input_box.style.zIndex = "1";
         virtualArea.style.overflow = "hidden";
         virtualArea.appendChild(input_box);
-        input_box.focus();
+        input_box.addEventListener("focus", () => {
+            this.formularBarInput.value = input_box.value;
+            let newValue = input_box.value;
+            const match = newValue.match(/^=([A-Z]+)\(([A-Z]+\d+):([A-Z]+\d+)\)$/i) || [];
+
+            if (!match.length) return;
+            const start = match[2];
+            const end = match[3];
+
+            let startRange = a1ToIndexes(start);
+            let endRange = a1ToIndexes(end);
+
+            this.selectedRange = { startRow: startRange.row, startCol: startRange.col, endRow: endRange.row, endCol: endRange.col };
+            this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
+        })
 
         input_box.addEventListener("input", () => {
             this.formularBarInput.value = input_box.value;
             let newValue = input_box.value;
-            const match = newValue.match(/^=([A-Z]+)\((\w+\d+):(\w+\d+)\)$/i) || [];
+            const match = newValue.match(/^=([A-Z]+)\(([A-Z]+\d+):([A-Z]+\d+)\)$/i) || [];
 
             if (!match.length) return;
             const start = match[2];
@@ -572,6 +620,8 @@ class ExcelSheet {
                 input_box.blur();
             }
         });
+
+        input_box.focus();
     }
 
 
@@ -631,9 +681,12 @@ class ExcelSheet {
         this.ctx.beginPath();
         this.ctx.rect(this.rowHeaderWidth, this.colHeaderHeight, this.canvas.width - this.rowHeaderWidth, this.canvas.height - this.colHeaderHeight);
         this.ctx.clip();
-
-        this.drawCellContent(startRow, endRow, startCol, endCol, scrollTop, scrollLeft);
         this.drawGridLines(startRow, endRow, startCol, endCol, scrollTop, scrollLeft);
+
+        if (this.selectedRange.startRow !== null && this.selectedRange.startCol !== null && this.selectedRange.endRow !== null && this.selectedRange.endCol !== null) {
+            this.highlightSelectedRange(this.selectedRange.startRow, this.selectedRange.endRow, this.selectedRange.startCol, this.selectedRange.endCol, scrollTop, scrollLeft);
+        }
+        this.drawCellContent(startRow, endRow, startCol, endCol, scrollTop, scrollLeft);
 
         this.ctx.beginPath();
         this.ctx.restore();
@@ -642,9 +695,6 @@ class ExcelSheet {
         this.drawRowHeaders(startRow, endRow, scrollTop);
         this.drawCornorBox();
 
-        if (this.selectedRange.startRow !== null && this.selectedRange.startCol !== null && this.selectedRange.endRow !== null && this.selectedRange.endCol !== null) {
-            this.highlightSelectedRange(this.selectedRange.startRow, this.selectedRange.endRow, this.selectedRange.startCol, this.selectedRange.endCol, scrollTop, scrollLeft);
-        }
     }
 
 
@@ -811,57 +861,61 @@ class ExcelSheet {
                         rowHeight
                     );
                 }
-
                 this.ctx.beginPath();
                 this.ctx.strokeStyle = "#ccc";
                 this.ctx.lineWidth = 1;
                 this.ctx.strokeRect(x, y, colWidth, rowHeight);
                 this.ctx.stroke();
-                // === Border logic: Only outer rectangle gets green border
-                const isTopEdge = row === startAreaRow;
-                const isBottomEdge = row === endAreaRow;
-                const isLeftEdge = col === startAreaCol;
-                const isRightEdge = col === endAreaCol;
+                
+                const isBothSelected = this.selectedCols.length > 0 && this.selectedRows.length > 0;
 
-                this.ctx.strokeStyle = "#ccc";
-                this.ctx.lineWidth = 1;
+                if (!(((this.selectedCols.includes(col) && (endAreaCol - startAreaCol + 1) < this.selectedCols.length) || this.selectedRows.includes(row) && (endAreaRow - startAreaRow + 1) < this.selectedRows.length) || isBothSelected)) {
+                    // === Border logic: Only outer rectangle gets green border
+                    const isTopEdge = row === startAreaRow;
+                    const isBottomEdge = row === endAreaRow;
+                    const isLeftEdge = col === startAreaCol;
+                    const isRightEdge = col === endAreaCol;
 
-                if (isTopEdge) {
-                    this.ctx.beginPath();
-                    this.ctx.strokeStyle = "#137E43";
-                    this.ctx.lineWidth = 2;
-                    this.ctx.moveTo(x, y);
-                    this.ctx.lineTo(x + colWidth, y);
-                    this.ctx.stroke();
+                    this.ctx.strokeStyle = "#ccc";
+                    this.ctx.lineWidth = 1;
+
+                    if (isTopEdge) {
+                        this.ctx.beginPath();
+                        this.ctx.strokeStyle = "#137E43";
+                        this.ctx.lineWidth = 2;
+                        this.ctx.moveTo(x, y);
+                        this.ctx.lineTo(x + colWidth, y);
+                        this.ctx.stroke();
+                    }
+
+                    if (isBottomEdge) {
+                        this.ctx.beginPath();
+                        this.ctx.strokeStyle = "#137E43";
+                        this.ctx.lineWidth = 2;
+                        this.ctx.moveTo(x, y + rowHeight);
+                        this.ctx.lineTo(x + colWidth, y + rowHeight);
+                        this.ctx.stroke();
+                    }
+
+                    if (isLeftEdge) {
+                        this.ctx.beginPath();
+                        this.ctx.strokeStyle = "#137E43";
+                        this.ctx.lineWidth = 2;
+                        this.ctx.moveTo(x, y);
+                        this.ctx.lineTo(x, y + rowHeight);
+                        this.ctx.stroke();
+                    }
+
+                    if (isRightEdge) {
+                        this.ctx.beginPath();
+                        this.ctx.strokeStyle = "#137E43";
+                        this.ctx.lineWidth = 2;
+                        this.ctx.moveTo(x + colWidth, y);
+                        this.ctx.lineTo(x + colWidth, y + rowHeight);
+                        this.ctx.stroke();
+                    }
+                    this.ctx.lineWidth = 1;
                 }
-
-                if (isBottomEdge) {
-                    this.ctx.beginPath();
-                    this.ctx.strokeStyle = "#137E43";
-                    this.ctx.lineWidth = 2;
-                    this.ctx.moveTo(x, y + rowHeight);
-                    this.ctx.lineTo(x + colWidth, y + rowHeight);
-                    this.ctx.stroke();
-                }
-
-                if (isLeftEdge) {
-                    this.ctx.beginPath();
-                    this.ctx.strokeStyle = "#137E43";
-                    this.ctx.lineWidth = 2;
-                    this.ctx.moveTo(x, y);
-                    this.ctx.lineTo(x, y + rowHeight);
-                    this.ctx.stroke();
-                }
-
-                if (isRightEdge) {
-                    this.ctx.beginPath();
-                    this.ctx.strokeStyle = "#137E43";
-                    this.ctx.lineWidth = 2;
-                    this.ctx.moveTo(x + colWidth, y);
-                    this.ctx.lineTo(x + colWidth, y + rowHeight);
-                    this.ctx.stroke();
-                }
-                this.ctx.lineWidth = 1;
             }
         }
     }
@@ -869,36 +923,27 @@ class ExcelSheet {
 
     highlightSelectedRange(startRow: number, endRow: number, startCol: number, endCol: number, scrollTop: number, scrollLeft: number) {
         if (startRow !== null && startCol !== null && endRow !== null && endCol !== null) {
-            console.log("try to draw selected range");
-
             let sr1 = startRow, sc1 = startCol, er1 = endRow, ec1 = endCol;
 
             startRow = Math.min(sr1, er1);
             startCol = Math.min(sc1, ec1);
             endRow = Math.max(sr1, er1);
             endCol = Math.max(sc1, ec1);
-
-            console.log(startRow, endRow, startCol, endCol);
-
-
             let y = (this.cumulativeRowHeights[startRow - 1] ?? 0) - scrollTop + this.colHeaderHeight;
             let x = (this.cumulativeColWidths[startCol - 1] ?? 0) - scrollLeft + this.rowHeaderWidth;
 
-            if (x < 0) x = 0;
-            if (y < 0) y = 0;
-
             let width = this.cumulativeColWidths[endCol] - (this.cumulativeColWidths[startCol - 1] ?? 0);
             let height = this.cumulativeRowHeights[endRow] - (this.cumulativeRowHeights[startRow - 1] ?? 0);
-            console.log(x, y, width, height);
-            console.log(this.cumulativeRowHeights[startCol - 1] ?? 0, this.cumulativeRowHeights[endCol]);
-
             this.ctx.beginPath();
+            this.ctx.fillStyle = "rgba(194, 225, 247, 0.37)";
+            this.ctx.fillRect(x, y, width - 1, height - 1);
             this.ctx.strokeStyle = "blue";
             this.ctx.lineWidth = 2;
             this.ctx.strokeRect(x, y, width, height);
             this.ctx.stroke();
             this.ctx.lineWidth = 1;
             this.ctx.strokeStyle = "black";
+
         }
     }
 
@@ -911,7 +956,6 @@ class ExcelSheet {
      * @param scrollTop Current scroll top of the grid
      * @param scrollLeft Current scroll left of the grid
      */
-
     drawGridLines(startRow: number, endRow: number, startCol: number, endCol: number, scrollTop: number, scrollLeft: number) {
 
 
@@ -966,7 +1010,7 @@ class ExcelSheet {
                 isSelectedRow = this.selectedRows.indexOf(row) !== -1;
             }
             const isSelectedCellRow = this.selectedCell?.row === row;
-
+            const isColSelected = this.selectedCols.length > 0;
             const isInSelectedArea =
                 this.selectedArea?.startRow !== null &&
                 this.selectedArea?.endRow !== null &&
@@ -982,6 +1026,8 @@ class ExcelSheet {
                 this.ctx.fillStyle = "#CAEAD8";
             } else if (isSelectedRow) {
                 this.ctx.fillStyle = "#137E43";
+            } else if (isColSelected) {
+                this.ctx.fillStyle = "#CAEAD8";
             } else {
                 this.ctx.fillStyle = "#f0f0f0";
             }
@@ -992,21 +1038,21 @@ class ExcelSheet {
             this.ctx.lineWidth = isSelectedRow ? 2 : 1;
             this.ctx.strokeRect(0.5, y + 0.5, this.rowHeaderWidth, height);
 
+
+            // === Right edge highlight if selected
+            if ((isSelectedCellRow || isInSelectedArea && !isSelectedRow) || isColSelected) {
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "#137E43";
+                this.ctx.lineWidth = 2;
+                this.ctx.moveTo(this.rowHeaderWidth + 0.5, y + 0.5);
+                this.ctx.lineTo(this.rowHeaderWidth + 0.5, y + height + 0.5);
+                this.ctx.stroke();
+            }
             if (isSelectedRow) {
                 this.ctx.beginPath();
                 this.ctx.strokeStyle = "white";
                 this.ctx.lineWidth = 3;
                 this.ctx.moveTo(0.5, y + height + 0.5);
-                this.ctx.lineTo(this.rowHeaderWidth + 0.5, y + height + 0.5);
-                this.ctx.stroke();
-            }
-
-            // === Right edge highlight if selected
-            if (isSelectedCellRow || isInSelectedArea && !isSelectedRow) {
-                this.ctx.beginPath();
-                this.ctx.strokeStyle = "#137E43";
-                this.ctx.lineWidth = 2;
-                this.ctx.moveTo(this.rowHeaderWidth + 0.5, y + 0.5);
                 this.ctx.lineTo(this.rowHeaderWidth + 0.5, y + height + 0.5);
                 this.ctx.stroke();
             }
@@ -1071,6 +1117,8 @@ class ExcelSheet {
                     (this.selectedArea.endCol <= col && col <= this.selectedArea.startCol)
                 );
 
+            const isRowSelected = this.selectedRows.length > 0;
+
             const isSelectedCellCol = this.selectedCell?.col === col;
 
             let isFullySelectedCol = false;
@@ -1081,10 +1129,12 @@ class ExcelSheet {
             // === Set background fill color
             if (isEntierGridIsSelected) {
                 this.ctx.fillStyle = "#137E43";
-            } else if ((isSelectedCellCol || isInSelectedArea) && !isFullySelectedCol) {
+            } else if (((isSelectedCellCol || isInSelectedArea) && !isFullySelectedCol)) {
                 this.ctx.fillStyle = "#CAEAD8";
             } else if (isFullySelectedCol) {
                 this.ctx.fillStyle = "#137E43";
+            } else if (isRowSelected) {
+                this.ctx.fillStyle = "#CAEAD8";
             } else {
                 this.ctx.fillStyle = "#f0f0f0";
             }
@@ -1102,7 +1152,7 @@ class ExcelSheet {
             this.ctx.strokeRect(x + 0.5, 0 + 0.5, width, this.colHeaderHeight);
 
             // === Bottom border if part of selected area or cell
-            if (isSelectedCellCol || isInSelectedArea && !isFullySelectedCol) {
+            if ((isSelectedCellCol || isInSelectedArea && !isFullySelectedCol) || isRowSelected) {
                 this.ctx.strokeStyle = "#137E43";
                 this.ctx.lineWidth = 2;
                 this.ctx.beginPath();
@@ -1201,11 +1251,7 @@ class ExcelSheet {
             }
 
             if (currentRow <= rowEnd) {
-                // if ((rowEnd - rowStart + 1) * (colEnd - colStart + 1) > 5000) {
-                //     setTimeout(processBatch, 0);
-                // } else {
                 processBatch();
-                // }
             } else {
                 const avg = numericCount > 0 ? sum / numericCount : null;
 
@@ -1362,9 +1408,9 @@ class ExcelSheet {
         }
 
         // Vertical scroll check
-        if (cellY < scrollTop + headerOffsetY) {
+        if (cellY < scrollTop + headerOffsetY + cellHeight) {
             newScrollTop = cellY - headerOffsetY;
-        } else if (cellY + cellHeight > scrollTop + viewHeight) {
+        } else if (cellY + cellHeight > scrollTop + viewHeight - headerOffsetY) {
             newScrollTop = cellY + cellHeight - viewHeight + headerOffsetY;
         }
 
