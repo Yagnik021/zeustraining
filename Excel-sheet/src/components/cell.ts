@@ -7,11 +7,8 @@ import { evaluateFormula } from "./Utils/evaluator";
  * @param {number} colIndex - The column index of the cell.
  */
 class Cell {
-
     text: string;
     displayValue: string;
-
-
     /**
      * Constructs a new instance of the Cell class.
      * @param {string} text - The text content of the cell.

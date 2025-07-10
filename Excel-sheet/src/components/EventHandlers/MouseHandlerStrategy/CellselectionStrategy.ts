@@ -1,32 +1,45 @@
 import type { ExcelSheet } from "../../Excellsheet";
 import { AutoScroller } from "../../Utils/autoScroll";
+import type { Area } from "../MouseHandler";
 import type { MouseStrategy } from "./MouseStrategy";
+
 
 /**
  * Strategy class for handling cell selection via mouse.
+ * @member startRow - The row index where the selection started.
+ * @member startCol - The column index where the selection started.
+ * @member autoScroller - An instance of AutoScroller for automatic scrolling.
+ * @member areaStatusDebounceTimer - A timer for debouncing area status updates.
+ * @member rafId - The ID of the requestAnimationFrame for redrawing the area status.
+ * @member lastDrawnArea - The last drawn area of the selection.
  */
 class CellSelectionStrategy implements MouseStrategy {
     private startRow: number | null = null;
     private startCol: number | null = null;
     private autoScroller: AutoScroller;
+    private areaStatusDebounceTimer: number | null = null;
+
+    private rafId: number | null = null;
+    private lastDrawnArea: Area | null = null;
 
     constructor(private sheet: ExcelSheet) {
         this.autoScroller = new AutoScroller(
             this.sheet.container,
-            (e : MouseEvent) => {
+            (e: MouseEvent) => {
                 this.onPointerMove(e);
             },
             "both"
         );
     }
 
+    /**
+     * Processes the pointer down event for cell selection.
+     * @param e Mouse event
+     */
     onPointerDown(e: MouseEvent): void {
-
         if (this.startRow === null || this.startCol === null) return;
-
         this.sheet.selectedRows = [];
         this.sheet.selectedCols = [];
-        this.sheet.isSelectingArea = true;
 
         this.sheet.selectedArea = {
             startRow: this.startRow,
@@ -39,8 +52,12 @@ class CellSelectionStrategy implements MouseStrategy {
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
 
+    /**
+     * Processes the pointer move event for cell selection.
+     * @param e Mouse event
+     */
     onPointerMove(e: MouseEvent): void {
-        if (!this.sheet.isSelectingArea || this.sheet.isInputOn) return;
+        if (this.sheet.isInputOn) return;
 
         const rect = this.sheet.canvas.getBoundingClientRect();
         const rawX = (e.clientX - rect.left) / this.sheet.dpr;
@@ -52,12 +69,14 @@ class CellSelectionStrategy implements MouseStrategy {
         const currentRow = this.sheet.getRowIndexFromY(y);
         const currentCol = this.sheet.getColIndexFromX(x);
 
-        this.sheet.selectedArea = {
+        const selectedArea: Area = {
             startRow: this.startRow,
             startCol: this.startCol,
             endRow: currentRow,
             endCol: currentCol
         };
+
+        this.sheet.selectedArea = selectedArea;
 
         const addressDiv = document.querySelector(".address") as HTMLDivElement;
 
@@ -80,10 +99,19 @@ class CellSelectionStrategy implements MouseStrategy {
             }
         }
 
-        this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
+
+        if (this.shouldRedraw(selectedArea)) {
+            this.lastDrawnArea = { ...selectedArea };
+            this.scheduleRedraw();
+        }
         this.autoScroller.start(e);
+        this.debounceAreaStatus();
+
     }
 
+    /**
+     * Processes the pointer up event for cell selection.
+     */
     onPointerUp(): void {
         const addressDiv = document.querySelector(".address") as HTMLDivElement;
         const cell = this.sheet.selectedCell;
@@ -98,15 +126,14 @@ class CellSelectionStrategy implements MouseStrategy {
             }
         }
 
-        if (this.sheet.isSelectingArea) {
-            this.sheet.calculateAreaStatus();
-        }
-
-        this.sheet.isSelectingArea = false;
         this.autoScroller.stop();
 
     }
 
+    /**
+     * Hits test for cell selection
+     * @param e Mouse event
+     */
     hitTest(e: MouseEvent): boolean {
         const rect = this.sheet.canvas.getBoundingClientRect();
         const physicalX = (e.clientX - rect.left) / this.sheet.dpr;
@@ -131,8 +158,57 @@ class CellSelectionStrategy implements MouseStrategy {
             this.startCol = this.sheet.getColIndexFromX(logicalX);
             return true;
         }
-
         return false;
+    }
+
+    setCursor(): void {
+        this.sheet.container.style.cursor = "cell";
+    }
+
+    /**
+     * Check if the area should be redrawn
+     * @param newArea New area
+     * @returns Boolean True if the area should be redrawn
+     */
+    private shouldRedraw(newArea: Area): boolean {
+        const last = this.lastDrawnArea;
+        if (!last) return true;
+
+        return (
+            last.startRow !== newArea.startRow ||
+            last.endRow !== newArea.endRow ||
+            last.startCol !== newArea.startCol ||
+            last.endCol !== newArea.endCol
+        );
+    }
+
+    /**
+     * Draw the area using requestAnimationFrame
+     */
+    private scheduleRedraw() {
+        if (this.rafId !== null) return;
+
+        this.rafId = requestAnimationFrame(() => {
+            this.rafId = null;
+            this.sheet.redrawVisible(
+                this.sheet.container.scrollTop,
+                this.sheet.container.scrollLeft
+            );
+        });
+    }
+
+    /**
+     * Delay the calculation of the area status
+     * @param delay Delay in milliseconds
+     */
+    private debounceAreaStatus(delay = 100): void {
+        if (this.areaStatusDebounceTimer !== null) {
+            clearTimeout(this.areaStatusDebounceTimer);
+        }
+
+        this.areaStatusDebounceTimer = window.setTimeout(() => {
+            this.sheet.calculateAreaStatus();
+        }, delay);
     }
 }
 

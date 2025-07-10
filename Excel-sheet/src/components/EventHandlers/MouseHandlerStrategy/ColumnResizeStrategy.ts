@@ -4,12 +4,20 @@ import type { MouseStrategy } from "./MouseStrategy";
 
 /**
  * Strategy class for handling column resizing via mouse.
+ * @member originalWidth - The original width of the resized column.
+ * @member resizeColIndex - The index of the column currently being resized.
+ * @member resizeLine - The div element used to display the resize line.
+ * 
  */
 class ColumnResizeStrategy implements MouseStrategy {
     private originalWidth: number = 0;
     private resizeColIndex: number | null = null;
-    private animationFrameId: number | null = null;
     private resizeLine: HTMLDivElement;
+
+    /**
+     * Constructor 
+     * @param sheet The ExcelSheet instance 
+     */
     constructor(private sheet: ExcelSheet) {
         this.resizeLine = document.createElement("div");
         this.resizeLine.style.position = "absolute";
@@ -22,6 +30,11 @@ class ColumnResizeStrategy implements MouseStrategy {
         this.sheet.container.appendChild(this.resizeLine);
     }
 
+    /**
+     * Processes a mouse down event for column resizing.
+     * @param e MouseEvent 
+     * @returns 
+     */
     onPointerDown(e: MouseEvent): void {
 
         if (this.resizeColIndex === null) return;
@@ -31,34 +44,37 @@ class ColumnResizeStrategy implements MouseStrategy {
         this.originalWidth = this.sheet.columns[this.resizeColIndex].width;
     }
 
+    /**
+     * Processes a mouse move event for column resizing.
+     * @param e MouseEvent
+     */
     onPointerMove(e: MouseEvent): void {
         if (!this.sheet.isResizing) return;
-
-
         if (this.resizeColIndex === null) return;
-        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
 
-        this.animationFrameId = requestAnimationFrame(() => {
-            const deltaX = e.clientX - this.sheet.resizeStartPos.x;
-            const col = this.sheet.columns[this.resizeColIndex!];
-            col.width = Math.max(50, this.originalWidth + deltaX);
+        const deltaX = e.clientX - this.sheet.resizeStartPos.x;
+        const col = this.sheet.columns[this.resizeColIndex!];
+        col.width = Math.max(50, this.originalWidth + deltaX);
 
-            this.sheet.updateCumulativeSizes();
+        this.sheet.updateCumulativeSizes();
 
-            const scrollLeft = this.sheet.container.scrollLeft;
-            const viewportWidth = this.sheet.canvas.width;
-            const startCol = this.sheet.getColIndexFromX(scrollLeft);
-            const endCol = this.sheet.getColIndexFromX(scrollLeft + viewportWidth);
+        const scrollLeft = this.sheet.container.scrollLeft;
+        const viewportWidth = this.sheet.canvas.width;
+        const startCol = this.sheet.getColIndexFromX(scrollLeft);
+        const endCol = this.sheet.getColIndexFromX(scrollLeft + viewportWidth);
 
-            const columnPosition = this.sheet.cumulativeColWidths[this.resizeColIndex!] + this.sheet.rowHeaderWidth;
-            this.sheet.drawColumnHeaders(startCol, endCol, scrollLeft);
-            this.resizeLine.style.top = `${this.sheet.container.scrollTop + this.sheet.colHeaderHeight}px`;
-            this.resizeLine.style.height = `${this.sheet.canvas.height - this.sheet.colHeaderHeight}px`;
-            this.resizeLine.style.left = `${columnPosition}px`;
-            this.resizeLine.style.display = "block";
-        });
+        const columnPosition = (this.sheet.cumulativeColWidths[this.resizeColIndex!] + this.sheet.rowHeaderWidth) * this.sheet.dpr;
+        this.sheet.drawColumnHeaders(startCol, endCol, scrollLeft);
+        this.resizeLine.style.top = `${(this.sheet.container.scrollTop) + this.sheet.colHeaderHeight * this.sheet.dpr }px`;
+        this.resizeLine.style.height = `${this.sheet.canvas.height - this.sheet.colHeaderHeight * this.sheet.dpr}px`;
+        this.resizeLine.style.left = `${columnPosition}px`;
+        this.resizeLine.style.display = "block";
     }
 
+    /**
+     * Processes a mouse up event for column resizing.
+     * @param e Mouse Event
+     */
     onPointerUp(e: MouseEvent): void {
         if (!this.sheet.isResizing) return;
 
@@ -75,9 +91,12 @@ class ColumnResizeStrategy implements MouseStrategy {
         }
         this.resizeLine.style.display = "none";
         this.sheet.isResizing = false;
-        this.sheet.resizeTarget = null;
     }
 
+    /**
+     * Hit test for column resizing
+     * @param e Mouse Event
+     */
     hitTest(e: PointerEvent): boolean {
         const rect = this.sheet.canvas.getBoundingClientRect();
         const rawX = (e.clientX - rect.left) / this.sheet.dpr;
@@ -96,6 +115,11 @@ class ColumnResizeStrategy implements MouseStrategy {
 
         return false;
     }
+
+    setCursor(): void {
+        this.sheet.container.style.cursor = "ew-resize";
+    }
+
 }
 
 export { ColumnResizeStrategy };

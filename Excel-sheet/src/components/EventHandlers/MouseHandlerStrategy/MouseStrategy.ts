@@ -6,4 +6,5 @@ export interface MouseStrategy {
     onPointerMove(e: MouseEvent): void;
     onPointerUp(e: MouseEvent): void;
     hitTest(e: MouseEvent): boolean;
+    setCursor(): void;
 }

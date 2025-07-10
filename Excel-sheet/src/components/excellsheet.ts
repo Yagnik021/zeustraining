@@ -38,17 +38,14 @@ const colIndexToField: Record<number, keyof DataRow> = {
 
 /**
  * The ExcelSheet class represents the main Excel sheet component.
- *
  * @member rows - An array of Row objects representing the rows in the Excel sheet.
  * @member columns - An array of Column objects representing the columns in the Excel sheet.
  * @member cells - A 2D array of Cell objects representing the cells in the Excel sheet. * 
  * @member sheetWidth - The total width of the Excel sheet in pixels.
  * @member sheetHeight - The total height of the Excel sheet in pixels.
  * @member isResizing - Indicates whether a resize operation is currently in progress.
- * @member resizeTarget - The target column or row being resized.
  * @member resizeStartPos - The screen position where the resize interaction started.
  * @member _selectedCell - Internally tracks the currently selected cell (use selectedCell getter/setter externally).
- * @member isSelectingArea - Indicates whether the user is currently selecting a cell area.
  * @member dpr - The device pixel ratio used for accurate canvas rendering.
  * @member canvas - The canvas element used to render the Excel sheet.
  * @member ctx - The 2D rendering context for the canvas.
@@ -69,7 +66,6 @@ const colIndexToField: Record<number, keyof DataRow> = {
 class ExcelSheet {
 
     private _selectedCell: { row: number; col: number } | null = null;
-    private _resizeTarget: { type: "column" | "row"; index: number } | null = null;
     private _resizeStartPos = { x: 0, y: 0 };
     private _clipboardBuffer: string[][] | null = null;
     private _rows: Row[] = [];
@@ -92,7 +88,6 @@ class ExcelSheet {
     public ctx: CanvasRenderingContext2D;
     public formularBarInput: HTMLInputElement;
     public isResizing = false;
-    public isSelectingArea = false;
     public dpr = window.devicePixelRatio || 1;
     public canvas: HTMLCanvasElement;
     public isInputOn = false;
@@ -120,11 +115,6 @@ class ExcelSheet {
         new KeyDownHandler(this);
     }
 
-    /**
-     * Getter and setter for the resizeTarget property.
-     */
-    get resizeTarget() { return this._resizeTarget; }
-    set resizeTarget(value: { type: "column" | "row"; index: number } | null) { this._resizeTarget = value; }
 
     /**
      * Getter and setter for the resizeStartPos property.
@@ -253,8 +243,6 @@ class ExcelSheet {
                 this.formularBarInput.value = "";
             }
         }
-        this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
-        this.calculateAreaStatus();
     }
 
 
@@ -366,7 +354,8 @@ class ExcelSheet {
      * Get cell if not exists then create a new one
      * @param row Row index of the cell
      * @param col Col index of the cell
-     * @returns Cell object
+     * @returns Cell object+
+     * 
      */
     getOrCreateCell(row: number, col: number): Cell {
         let rowMap = this.cells.get(row);
@@ -459,19 +448,19 @@ class ExcelSheet {
         });
 
         window.addEventListener("resize", () => {
-            const currentthis = window.devicePixelRatio > 1 ? window.devicePixelRatio : 1;
-            if (currentthis !== this.dpr) {
-                this.dpr = currentthis;
+            const currentDPR = window.devicePixelRatio > 1 ? window.devicePixelRatio : 1;
+            if (currentDPR !== this.dpr) {
+                this.dpr = currentDPR;
             }
 
-            this.canvas.width = this.container.clientWidth * currentthis;
-            this.canvas.height = this.container.clientHeight * currentthis;
+            this.canvas.width = this.container.clientWidth * currentDPR;
+            this.canvas.height = this.container.clientHeight * currentDPR;
             this.canvas.style.width = this.canvas.width + "px";
             this.canvas.style.height = this.canvas.height + "px";
-            this.ctx.scale(currentthis, currentthis);
-            this.ctx.transform(currentthis, 0, 0, currentthis, 0, 0);
+            this.ctx.scale(currentDPR, currentDPR);
+            // this.ctx.transform(currentDPR, 0, 0, currentDPR, 0, 0);
 
-            this.updateCumulativeSizes();
+            this.updateCumulativeSizes();            
             this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
         })
 
@@ -530,7 +519,6 @@ class ExcelSheet {
         })
 
         this.formularBarInput.addEventListener("blur", () => {
-
             this.selectedRange = { startRow: null, startCol: null, endRow: null, endCol: null };
             this.redrawVisible(this.container.scrollTop, this.container.scrollLeft);
         })
@@ -631,6 +619,8 @@ class ExcelSheet {
      * @param scrollLeft Current scroll left of the grid
      */
     public redrawVisible(scrollTop: number, scrollLeft: number): void {
+        console.log("redrawVisible");
+        
         const viewportWidth = this.canvas.width;
         const viewportHeight = this.canvas.height;
 
@@ -866,7 +856,7 @@ class ExcelSheet {
                 this.ctx.lineWidth = 1;
                 this.ctx.strokeRect(x, y, colWidth, rowHeight);
                 this.ctx.stroke();
-                
+
                 const isBothSelected = this.selectedCols.length > 0 && this.selectedRows.length > 0;
 
                 if (!(((this.selectedCols.includes(col) && (endAreaCol - startAreaCol + 1) < this.selectedCols.length) || this.selectedRows.includes(row) && (endAreaRow - startAreaRow + 1) < this.selectedRows.length) || isBothSelected)) {
@@ -1001,6 +991,7 @@ class ExcelSheet {
     drawRowHeaders(startRow: number, endRow: number, scrollTop: number) {
         // === Draw row header background
         let isEntierGridIsSelected = this.selectedArea?.startRow === 0 && this.selectedArea?.endRow === this.rows.length - 1 && this.selectedArea?.startCol === 0 && this.selectedArea?.endCol === this.columns.length - 1;
+
         for (let row = startRow; row <= endRow; row++) {
             const y = this.colHeaderHeight + (this.cumulativeRowHeights[row - 1] ?? 0) - scrollTop;
             const height = this.rows[row].height;

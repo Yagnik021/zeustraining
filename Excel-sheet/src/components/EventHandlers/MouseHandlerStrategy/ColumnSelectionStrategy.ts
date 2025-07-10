@@ -1,15 +1,28 @@
 import type { ExcelSheet } from "../../Excellsheet";
 import { AutoScroller } from "../../Utils/autoScroll";
+import type { Area } from "../MouseHandler";
 import type { MouseStrategy } from "./MouseStrategy";
 
 /**
  * Strategy for selecting entire columns via mouse interaction.
+ * @member startCol - The column index where the selection started.
+ * @member autoScroller - An instance of AutoScroller for automatic scrolling.  
+ * @member ctrlKeyPressed - Indicates whether the Ctrl key is pressed.
+ * @member areaStatusDebounceTimer - A timer for debouncing area status updates.
  */
 class ColumnSelectionStrategy implements MouseStrategy {
     private startCol: number | null = null;
     private autoScroller: AutoScroller;
     private ctrlKeyPressed: boolean = false;
+    private areaStatusDebounceTimer: number | null = null;
 
+    private lastDrawnArea: Area | null = null;
+    private rafId: number | null = null;
+
+    /**
+     * Constructor for the ColumnSelectionStrategy class.
+     * @param sheet Reference to the ExcelSheet instance.
+     */
     constructor(private sheet: ExcelSheet) {
         this.autoScroller = new AutoScroller(
             this.sheet.container,
@@ -20,6 +33,10 @@ class ColumnSelectionStrategy implements MouseStrategy {
         );
     }
 
+    /**
+     * Process a pointer down event for column selection.
+     * @param e Mouse event
+     */
     onPointerDown(e: MouseEvent): void {
         this.ctrlKeyPressed = e.ctrlKey;
 
@@ -38,7 +55,6 @@ class ColumnSelectionStrategy implements MouseStrategy {
         }
 
         this.startCol = col;
-        this.sheet.isSelectingArea = true;
 
         if (this.ctrlKeyPressed) {
             if (!this.sheet.selectedCols.includes(col)) {
@@ -48,7 +64,7 @@ class ColumnSelectionStrategy implements MouseStrategy {
             this.sheet.selectedCols = [col];
         }
 
-        if(!e.ctrlKey){
+        if (!e.ctrlKey) {
             this.sheet.selectedRows = [];
         }
         this.sheet.selectedCell = { row: 0, col };
@@ -64,8 +80,12 @@ class ColumnSelectionStrategy implements MouseStrategy {
         this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
     }
 
+    /**
+     * Process a pointer move event for column selection.
+     * @param e Mouse event
+     */
     onPointerMove(e: MouseEvent): void {
-        if (!this.sheet.isSelectingArea || this.sheet.isInputOn || this.startCol === null) return;
+        if (this.sheet.isInputOn || this.startCol === null) return;
 
         const rect = this.sheet.canvas.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / this.sheet.dpr) + this.sheet.container.scrollLeft - this.sheet.rowHeaderWidth;
@@ -73,13 +93,14 @@ class ColumnSelectionStrategy implements MouseStrategy {
 
         const start = Math.min(this.startCol, currentCol);
         const end = Math.max(this.startCol, currentCol);
-
-        this.sheet.selectedArea = {
+        const newArea: Area = {
             startRow: 0,
             endRow: this.sheet.rows.length - 1,
             startCol: start,
             endCol: end
         };
+
+        this.sheet.selectedArea = newArea;
 
         if (this.ctrlKeyPressed) {
             for (let col = start; col <= end; col++) {
@@ -94,16 +115,25 @@ class ColumnSelectionStrategy implements MouseStrategy {
             }
         }
 
-        this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
+        if (this.shouldRedraw(newArea)) {
+            this.lastDrawnArea = { ...newArea };
+            this.scheduleRedraw();
+        }
         this.autoScroller.start(e);
+        this.debounceAreaStatus();
     }
 
+    /**
+     * Process a pointer up event for column selection.
+     */
     onPointerUp(): void {
-        this.sheet.calculateAreaStatus();
-        this.sheet.isSelectingArea = false;
         this.autoScroller.stop();
     }
 
+    /**
+     * Hits test for column selection
+     * @param e Mouse event
+     */
     hitTest(e: MouseEvent): boolean {
         const rect = this.sheet.canvas.getBoundingClientRect();
         const physicalX = (e.clientX - rect.left) / this.sheet.dpr;
@@ -115,8 +145,54 @@ class ColumnSelectionStrategy implements MouseStrategy {
         const outOfCanvas =
             physicalX > this.sheet.canvas.clientWidth ||
             physicalY > this.sheet.canvas.clientHeight;
-
         return colHeaderBuffer < 0 && rowHeaderBuffer > 0 && !outOfCanvas;
+    }
+
+    setCursor(): void {
+        this.sheet.container.style.cursor = "cell";
+    }
+
+    /**
+     * To check if the area should be redrawn
+     * @param area Current area
+     * @returns Boolean true if the area should be redrawn 
+     */
+    private shouldRedraw(area: Area): boolean {
+        const last = this.lastDrawnArea;
+        if (!last) return true;
+
+        return (
+            last.startRow !== area.startRow ||
+            last.endRow !== area.endRow ||
+            last.startCol !== area.startCol ||
+            last.endCol !== area.endCol
+        );
+    }
+
+    /**
+     * Draws the selected area using requestAnimationFrame
+     */
+    private scheduleRedraw() {
+        if (this.rafId !== null) return;
+        this.rafId = requestAnimationFrame(() => {
+            this.rafId = null;
+            this.sheet.redrawVisible(this.sheet.container.scrollTop, this.sheet.container.scrollLeft);
+        });
+    }
+
+
+    /**
+     * Debounces the area status update
+     * @param delay Delay in milliseconds
+     */
+    private debounceAreaStatus(delay = 100): void {
+        if (this.areaStatusDebounceTimer !== null) {
+            clearTimeout(this.areaStatusDebounceTimer);
+        }
+
+        this.areaStatusDebounceTimer = window.setTimeout(() => {
+            this.sheet.calculateAreaStatus();
+        }, delay);
     }
 }
 

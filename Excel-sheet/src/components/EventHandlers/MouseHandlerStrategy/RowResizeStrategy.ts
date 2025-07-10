@@ -4,12 +4,19 @@ import type { MouseStrategy } from "./MouseStrategy";
 
 /**
  * Strategy class for handling row resizing via mouse.
+ * @member originalHeight - The original height of the resized row.
+ * @member resizeRowIndex - The index of the row currently being resized.
+ * @member resizeLine - The div element used to display the resize line.
  */
 class RowResizeStrategy implements MouseStrategy {
     private originalHeight: number = 0;
     private resizeRowIndex: number | null = null;
     private resizeLine: HTMLDivElement;
 
+    /**
+     * Constructor for the RowResizeStrategy class.
+     * @param sheet Refrence to the sheet
+     */
     constructor(private sheet: ExcelSheet) {
 
         this.resizeLine = document.createElement("div");
@@ -23,6 +30,10 @@ class RowResizeStrategy implements MouseStrategy {
         this.sheet.container.appendChild(this.resizeLine);
     }
 
+    /**
+     * Processes the pointer down event for row resizing.
+     * @param e Mouse event
+     */
     onPointerDown(e: MouseEvent): void {
         if (this.resizeRowIndex === null) return;
 
@@ -31,6 +42,10 @@ class RowResizeStrategy implements MouseStrategy {
         this.originalHeight = this.sheet.rows[this.resizeRowIndex].height;
     }
 
+    /**
+     * processes the pointer move event for row resizing
+     * @param e Mouse event
+     */
     onPointerMove(e: MouseEvent): void {
         if (!this.sheet.isResizing || this.resizeRowIndex === null) return;
         const deltaY = e.clientY - this.sheet.resizeStartPos.y;
@@ -44,16 +59,19 @@ class RowResizeStrategy implements MouseStrategy {
         const startRow = this.sheet.getRowIndexFromY(scrollTop);
         const endRow = this.sheet.getRowIndexFromY(scrollTop + viewportHeight);
 
-        const rowPosition = this.sheet.cumulativeRowHeights[this.resizeRowIndex!] + this.sheet.colHeaderHeight;
+        const rowPosition = (this.sheet.cumulativeRowHeights[this.resizeRowIndex!] + this.sheet.colHeaderHeight) * this.sheet.dpr;
         this.sheet.drawRowHeaders(startRow, endRow, scrollTop);
         this.resizeLine.style.display = "block";
-        this.resizeLine.style.width = `${this.sheet.canvas.width - this.sheet.rowHeaderWidth}px`;
+        this.resizeLine.style.width = `${this.sheet.canvas.width - this.sheet.rowHeaderWidth * this.sheet.dpr}px`;
         this.resizeLine.style.top = `${rowPosition}px`;
-        this.resizeLine.style.left = `${this.sheet.rowHeaderWidth + this.sheet.container.scrollLeft}px`;
+        this.resizeLine.style.left = `${this.sheet.rowHeaderWidth * this.sheet.dpr + this.sheet.container.scrollLeft}px`;
     }
 
 
-    onPointerUp(e: MouseEvent): void {
+    /**
+     * processes the pointer up event for row resizing
+     */
+    onPointerUp(): void {
         if (!this.sheet.isResizing) return;
 
         const finalHeight = this.sheet.rows[this.resizeRowIndex!].height;
@@ -69,9 +87,12 @@ class RowResizeStrategy implements MouseStrategy {
         }
         this.resizeLine.style.display = "none";
         this.sheet.isResizing = false;
-        this.sheet.resizeTarget = null;
     }
 
+    /**
+     * Hit test for row resizing
+     * @param e Mouse event
+     */
     hitTest(e: MouseEvent): boolean {
         const rect = this.sheet.canvas.getBoundingClientRect();
         const rawY = (e.clientY - rect.top) / this.sheet.dpr;
@@ -87,6 +108,10 @@ class RowResizeStrategy implements MouseStrategy {
         }
 
         return false;
+    }
+
+    setCursor(): void {
+        this.sheet.container.style.cursor = "ns-resize";
     }
 }
 

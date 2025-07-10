@@ -5,8 +5,14 @@ import { ColumnResizeStrategy } from "./MouseHandlerStrategy/ColumnResizeStrateg
 import { RowResizeStrategy } from "./MouseHandlerStrategy/RowResizeStrategy";
 import { ColumnSelectionStrategy } from "./MouseHandlerStrategy/ColumnSelectionStrategy";
 import { RowSelectionStrategy } from "./MouseHandlerStrategy/RowSelectionStrategy";
-import { CursorStrategy } from "./MouseHandlerStrategy/CursorStrategy";
 import { SheetSelectionStrategy } from "./MouseHandlerStrategy/SheetSeletionStrategy";
+
+export interface Area {
+    startRow: number | null;
+    endRow: number | null;
+    startCol: number | null;
+    endCol: number | null;
+}
 
 /**
  * Handles mouse events and delegates them to the appropriate strategy
@@ -14,14 +20,12 @@ import { SheetSelectionStrategy } from "./MouseHandlerStrategy/SheetSeletionStra
 export class MouseHandler {
     private strategies: MouseStrategy[] = [];
     private activeStrategy: MouseStrategy | null = null;
-    private cursorStrategy: CursorStrategy;
 
     /**
      * Constructor
      * @param sheet The ExcelSheet instance 
      */
     constructor(private sheet: ExcelSheet) {
-        this.cursorStrategy = new CursorStrategy(sheet);
         this.strategies = [
             new ColumnResizeStrategy(sheet),
             new RowResizeStrategy(sheet),
@@ -61,8 +65,17 @@ export class MouseHandler {
      * @param e Pointer event
      */
     pointerMove(e: PointerEvent) {
-        this.cursorStrategy.handle(e);
-        this.activeStrategy?.onPointerMove(e);
+        if(this.activeStrategy === null) {
+            for(const strategy of this.strategies) {
+                if(strategy.hitTest(e)) {
+                    strategy.setCursor();
+                    break;
+                }
+            }
+        }else{
+            this.activeStrategy.setCursor();
+            this.activeStrategy?.onPointerMove(e);
+        }
     }
 
     /**
